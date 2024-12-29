@@ -1,0 +1,12 @@
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\bin\Debug\net8.0\InventoryManagement.Core.deps.json
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\bin\Debug\net8.0\InventoryManagement.Core.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\bin\Debug\net8.0\InventoryManagement.Core.pdb
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.AssemblyInfoInputs.cache
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.AssemblyInfo.cs
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.csproj.CoreCompileInputs.cache
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\refint\InventoryManagement.Core.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.pdb
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\ref\InventoryManagement.Core.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.csproj.AssemblyReference.cache

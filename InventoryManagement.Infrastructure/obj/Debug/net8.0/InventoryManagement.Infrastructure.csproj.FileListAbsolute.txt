@@ -1,0 +1,17 @@
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\bin\Debug\net8.0\InventoryManagement.Infrastructure.deps.json
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\bin\Debug\net8.0\InventoryManagement.Infrastructure.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\bin\Debug\net8.0\InventoryManagement.Infrastructure.pdb
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\bin\Debug\net8.0\InventoryManagement.Core.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\bin\Debug\net8.0\InventoryManagement.Core.pdb
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.csproj.AssemblyReference.cache
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.AssemblyInfoInputs.cache
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.AssemblyInfo.cs
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.csproj.CoreCompileInputs.cache
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\Inventor.D66612EB.Up2Date
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\refint\InventoryManagement.Infrastructure.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.pdb
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\ref\InventoryManagement.Infrastructure.dll
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\bin\Debug\net8.0\InventoryManagement.Infrastructure.runtimeconfig.json
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.genruntimeconfig.cache
