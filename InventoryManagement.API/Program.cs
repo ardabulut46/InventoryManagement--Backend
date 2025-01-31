@@ -30,6 +30,7 @@ IConfiguration configuration = new ConfigurationBuilder()
     .Build();
   
 */
+//
 
 // azure'da deploy ederken bunu kullan
 builder.Configuration
