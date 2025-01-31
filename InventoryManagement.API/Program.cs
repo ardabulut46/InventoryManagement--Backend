@@ -21,7 +21,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Infrastructure settings configuration
 
-
+/* localde bu kullanılacak
 var infrastructureSettingsPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "InventoryManagement.Infrastructure", "appsettings.json");
 
 IConfiguration configuration = new ConfigurationBuilder()
@@ -29,14 +29,16 @@ IConfiguration configuration = new ConfigurationBuilder()
     .AddJsonFile(Path.GetFileName(infrastructureSettingsPath), optional: false, reloadOnChange: true)
     .Build();
   
+*/
 
-/*
+// azureda bu kullanılacak
 builder.Configuration
     .SetBasePath(builder.Environment.ContentRootPath)
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
-*/
+
+var configuration = builder.Configuration;
 
 // Database Configuration
 var connectionString =configuration.GetConnectionString("DefaultConnection");
