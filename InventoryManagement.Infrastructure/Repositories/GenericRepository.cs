@@ -64,7 +64,7 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
         {
             InventoryId = inventoryId,
             UserId = userId,
-            AssignmentDate = DateTime.UtcNow,
+            AssignmentDate = DateTime.Now,
             Notes = notes
         };
 

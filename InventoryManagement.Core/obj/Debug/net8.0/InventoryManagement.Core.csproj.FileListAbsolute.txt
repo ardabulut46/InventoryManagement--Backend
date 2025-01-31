@@ -10,3 +10,4 @@ C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\Invento
 C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.pdb
 C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\ref\InventoryManagement.Core.dll
 C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.csproj.AssemblyReference.cache
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Core\obj\Debug\net8.0\InventoryManagement.Core.sourcelink.json

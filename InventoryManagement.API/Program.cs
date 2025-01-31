@@ -1,3 +1,4 @@
+
 using System.Security.Claims;
 using System.Text;
 using FluentValidation;
@@ -19,17 +20,30 @@ using Microsoft.OpenApi.Models;
 var builder = WebApplication.CreateBuilder(args);
 
 // Infrastructure settings configuration
+
+
 var infrastructureSettingsPath = Path.Combine(Directory.GetCurrentDirectory(), "..", "InventoryManagement.Infrastructure", "appsettings.json");
 
 IConfiguration configuration = new ConfigurationBuilder()
     .SetBasePath(Path.GetDirectoryName(infrastructureSettingsPath))
     .AddJsonFile(Path.GetFileName(infrastructureSettingsPath), optional: false, reloadOnChange: true)
     .Build();
+  
+
+/*
+builder.Configuration
+    .SetBasePath(builder.Environment.ContentRootPath)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+    .AddEnvironmentVariables();
+*/
 
 // Database Configuration
-var connectionString = configuration.GetConnectionString("DefaultConnection");
+var connectionString =configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+     //options.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString)));
+    options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+    
 
 // Identity Configuration
 builder.Services.AddIdentityCore<User>(opt =>
@@ -107,13 +121,20 @@ builder.Services.AddSwaggerGen(option =>
 // CORS Configuration
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowReact", builder =>
+    options.AddPolicy("AllowAll", builder =>
     {
-        builder.WithOrigins("http://localhost:5173")
+        builder.WithOrigins(
+                "https://musical-kitsune-915440.netlify.app",  // Netlify URL
+                "http://localhost:5173",                      // Local development
+                "http://192.168.1.90:5173"                    // Local network
+            )
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
 });
+
+
+
 
 // Service Registrations
 builder.Services.AddControllers();
@@ -131,7 +152,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var serviceProvider = scope.ServiceProvider;
-    await SeedRolesAsync(serviceProvider);
+    //await SeedRolesAsync(serviceProvider);
+    //await SeedDepartmentsAsync(serviceProvider);
 }
 
 // Configure Middleware Pipeline
@@ -142,7 +164,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("AllowReact");
+app.UseCors("AllowAll");
+
 
 // Authentication & Authorization
 app.UseAuthentication();
@@ -150,7 +173,36 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Seed Roles Method
+// Seed metodları 
+static async Task SeedDepartmentsAsync(IServiceProvider serviceProvider)
+{
+    var context = serviceProvider.GetRequiredService<ApplicationDbContext>();
+
+    if (!context.Departments.Any())
+    {
+        context.Departments.Add(new Department { Name = "İK" });
+        context.Departments.Add(new Department { Name = "BT" });
+        context.Departments.Add(new Department { Name = "Muhasebe" });
+
+        
+        await context.SaveChangesAsync();
+    }
+    else
+    {
+        Console.WriteLine("Departmanlar zaten mevcut, ekleme yapılmadı.");
+    }
+
+    if (!context.Groups.Any())
+    {
+        context.Groups.Add(new Group { Name = "Backend",CreatedDate = DateTime.Now,IsActive = true,DepartmentId = 2 });
+        await context.SaveChangesAsync();
+    }
+    else
+    {
+        Console.WriteLine("Gruplar zaten mevcut");
+    }
+}
+
 static async Task SeedRolesAsync(IServiceProvider serviceProvider)
 {
     var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
@@ -171,5 +223,6 @@ static async Task SeedRolesAsync(IServiceProvider serviceProvider)
         await userManager.AddToRoleAsync(user, "Admin");
     }
 }
+
 
 app.Run();

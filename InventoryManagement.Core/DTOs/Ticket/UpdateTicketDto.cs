@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using InventoryManagement.Core.Enums;
 
 namespace InventoryManagement.Core.DTOs.Ticket;
 
@@ -19,5 +20,6 @@ public class UpdateTicketDto
     public string Description { get; set; }
 
     public string Status { get; set; }
+    public TicketPriority Priority { get; set; }
     public string AttachmentPath { get; set; }
 }

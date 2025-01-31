@@ -9,7 +9,13 @@ public class InventoryDto
     public string Barcode { get; set; }
     public string SerialNumber { get; set; }
     public int? AssignedUserId { get; set; }
-    public UserDto AssignedUser { get; set; }  
+    public int? CreatedUserId { get; set; }
+    public UserDto CreatedUser { get; set; }
+    public UserDto AssignedUser { get; set; }
+    public UserDto LastUser { get; set; }
+
+    public string InvoiceAttachmentPath { get; set; }
+    
     public int? SupportCompanyId { get; set; }
     public CompanyDto SupportCompany { get; set; }
     public string Family { get; set; }
@@ -27,5 +33,6 @@ public class InventoryDto
     public string Supplier { get; set; }
     public DateTime CreatedDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
+    
     public ICollection<InventoryHistoryDto> InventoryHistory { get; set; }
 }

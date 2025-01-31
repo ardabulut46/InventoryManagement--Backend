@@ -3,6 +3,7 @@ using InventoryManagement.Core.DTOs.Auth;
 using InventoryManagement.Core.DTOs.User;
 using InventoryManagement.Core.Entities;
 using InventoryManagement.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -70,4 +71,6 @@ public class AuthController : ControllerBase
             User = _mapper.Map<UserDto>(user)
         };
     }
+
+    
 }

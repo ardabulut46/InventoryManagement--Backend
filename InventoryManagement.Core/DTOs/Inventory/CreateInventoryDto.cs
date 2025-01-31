@@ -28,9 +28,14 @@ public class CreateInventoryDto
     public string Floor { get; set; }
     public string Block { get; set; }
     public string Department { get; set; }
+    public DateTime PurchaseDate { get; set; }
+    
+    public string? InvoiceAttachmentPath { get; set; }
     public DateTime? WarrantyStartDate { get; set; }
     public DateTime? WarrantyEndDate { get; set; }
     public string Supplier { get; set; }
+
+    public int? CreatedUserId { get; set; }
     public int? AssignedUserId { get; set; }
     public int? SupportCompanyId { get; set; }
 }

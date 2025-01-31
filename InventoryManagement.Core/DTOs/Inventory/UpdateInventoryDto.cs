@@ -23,6 +23,7 @@ public class UpdateInventoryDto
     [Required(ErrorMessage = "Model bilgisi zorunludur")]
     public string Model { get; set; }
     
+    public int? CreatedUserId { get; set; }
     public string Location { get; set; }
     public string Status { get; set; }
     public string Room { get; set; }

@@ -15,7 +15,8 @@ public class DesignTimeDbContextFactory : IDesignTimeDbContextFactory<Applicatio
 
         var optionsBuilder = new DbContextOptionsBuilder<ApplicationDbContext>();
         var connectionString = configuration.GetConnectionString("DefaultConnection");
-        optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+       // optionsBuilder.UseMySql(connectionString, ServerVersion.AutoDetect(connectionString));
+        optionsBuilder.UseSqlServer(connectionString);
 
         return new ApplicationDbContext(optionsBuilder.Options);
     }

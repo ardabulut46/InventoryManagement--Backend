@@ -15,3 +15,4 @@ C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\Invento
 C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\ref\InventoryManagement.Infrastructure.dll
 C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\bin\Debug\net8.0\InventoryManagement.Infrastructure.runtimeconfig.json
 C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.genruntimeconfig.cache
+C:\Users\ardab\Desktop\Hizmet Yönetim Sistemi\InventoryManagementSystem\InventoryManagement.Infrastructure\obj\Debug\net8.0\InventoryManagement.Infrastructure.sourcelink.json
