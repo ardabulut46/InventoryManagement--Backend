@@ -126,7 +126,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", builder =>
     {
         builder.WithOrigins(
-                "http://hizmeyonetim.me/",  // Netlify URL
+                "http://hizmeyonetim.me",  // Netlify URL
                 "http://localhost:5173",                      // Local development
                 "http://192.168.1.90:5173"                    // Local network
             )
