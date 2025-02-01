@@ -126,9 +126,10 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowAll", builder =>
     {
         builder.WithOrigins(
-                "https://www.hizmeyonetim.me",  // Netlify URL
-                "http://localhost:5173",                      // Local development
-                "http://192.168.1.90:5173"                    // Local network
+                "https://www.hizmeyonetim.me",
+                "hizmeyonetim.me",
+                "http://localhost:5173",                      
+                "http://192.168.1.90:5173"                    
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
