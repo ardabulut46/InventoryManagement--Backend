@@ -42,11 +42,9 @@ namespace InventoryManagement.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TicketDto>>> GetTickets()
         {
+            // Update the include path: use "Group.Department" instead of "Department"
             var tickets = await _ticketRepository.GetAllWithIncludesAsync(
-                "User",
-                "Department",
-                "Inventory",
-                "CreatedBy"); 
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
 
@@ -54,13 +52,10 @@ namespace InventoryManagement.API.Controllers
         public async Task<ActionResult<TicketDto>> GetTicket(int id)
         {
             var ticket = await _ticketRepository.GetByIdWithIncludesAsync(
-                id,
-                "User",
-                "Department",
-                "Inventory");
-        
+                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
             if (ticket == null)
                 return NotFound();
+
             if (ticket.AssignedDate != default)
             {
                 ticket.IdleDuration = ticket.AssignedDate - ticket.CreatedDate;
@@ -69,7 +64,6 @@ namespace InventoryManagement.API.Controllers
             var ticketDto = _mapper.Map<TicketDto>(ticket);
             return Ok(ticketDto);
         }
-
 
         [HttpPost]
         [Authorize]
@@ -82,19 +76,15 @@ namespace InventoryManagement.API.Controllers
                 return Unauthorized("Invalid user ID");
             }
             
-            
-
             // Get current user's information including location and room
-            var currentUser = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
+            var currentUser = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
             if (currentUser == null)
             {
                 return BadRequest("User not found");
             }
 
             // Validate problem type and get associated department
-            var problemType = await _context.ProblemTypes
-                .FirstOrDefaultAsync(p => p.Id == createTicketDto.ProblemTypeId && p.IsActive);
+            var problemType = await _context.ProblemTypes.FirstOrDefaultAsync(p => p.Id == createTicketDto.ProblemTypeId && p.IsActive);
             if (problemType == null)
             {
                 return BadRequest("Invalid or inactive problem type");
@@ -118,34 +108,37 @@ namespace InventoryManagement.API.Controllers
             var ticket = new Ticket
             {
                 RegistrationNumber = registrationNumber,
-                DepartmentId = problemType.DepartmentId, // Assign to department based on problem type
+                GroupId = problemType.GroupId, // Assign based on problem type
                 UserId = null, // Initially no user assigned
                 ProblemType = problemType.Name,
-                Location = currentUser.Location, // Get from current user
-                Room = currentUser.Room, // Get from current user
+                Location = currentUser.Location,
+                Room = currentUser.Room,
                 Subject = createTicketDto.Subject,
                 InventoryId = createTicketDto.InventoryId,
                 Description = createTicketDto.Description,
                 Status = "New",
                 AttachmentPath = createTicketDto.AttachmentPath,
-                CreatedById = userId, // Track who created the ticket
+                CreatedById = userId,
                 Priority = createTicketDto.Priority,
                 IdleDuration = null
             };
 
             var createdTicket = await _ticketRepository.AddAsync(ticket);
-
+            // Reload the ticket with all necessary navigation properties
+            var reloadedTicket = await _ticketRepository.GetByIdWithIncludesAsync(
+                createdTicket.Id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
             return CreatedAtAction(
                 nameof(GetTicket),
-                new { id = createdTicket.Id },
-                _mapper.Map<TicketDto>(createdTicket));
+                new { id = reloadedTicket.Id },
+                _mapper.Map<TicketDto>(reloadedTicket));
         }
 
         [HttpPut("{id}")]
         [Authorize]
         public async Task<IActionResult> UpdateTicket(int id, UpdateTicketDto updateTicketDto)
         {
-            var ticket = await _ticketRepository.GetByIdAsync(id);
+            var ticket = await _ticketRepository.GetByIdWithIncludesAsync(
+                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
             if (ticket == null)
                 return NotFound();
 
@@ -200,6 +193,7 @@ namespace InventoryManagement.API.Controllers
             var departmentUsers = allUsers.Where(u => u.DepartmentId == departmentId);
             return Ok(_mapper.Map<IEnumerable<UserDto>>(departmentUsers));
         }
+
         // Get tickets for user's department
         [HttpGet("department-tickets")]
         [Authorize]
@@ -212,18 +206,16 @@ namespace InventoryManagement.API.Controllers
                 return Unauthorized("Invalid user ID");
             }
 
-            // Get user's department
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null || !user.DepartmentId.HasValue)
+            // Get user's department (via Group in this case)
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null || !user.GroupId.HasValue)
             {
                 return BadRequest("User not found or not assigned to a department");
             }
 
-            // Get tickets for the department
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
-                t => t.DepartmentId == user.DepartmentId);
-
+                t => t.GroupId == user.GroupId,
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
 
@@ -239,17 +231,19 @@ namespace InventoryManagement.API.Controllers
                 return Unauthorized("Invalid user ID");
             }
 
-            // Get user's department
-            var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Id == userId);
-            if (user == null || !user.DepartmentId.HasValue)
+            // Get user's group
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null || !user.GroupId.HasValue)
             {
-                return BadRequest("User not found or not assigned to a department");
+                return BadRequest("User not found or not assigned to a group");
             }
 
-            // Get the ticket
+            // Get the ticket (include Department)
+            // Get the ticket (include Group and then its Department)
             var ticket = await _context.Tickets
                 .Include(t => t.CreatedBy)
+                .Include(t => t.Group)
+                .ThenInclude(g => g.Department)
                 .FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null)
             {
@@ -263,7 +257,7 @@ namespace InventoryManagement.API.Controllers
             }
 
             // Check if ticket belongs to user's department
-            if (ticket.DepartmentId != user.DepartmentId)
+            if (ticket.GroupId != user.GroupId)
             {
                 return BadRequest("Cannot assign ticket from different department");
             }
@@ -273,30 +267,12 @@ namespace InventoryManagement.API.Controllers
             ticket.Status = "In Progress";
             ticket.AssignedDate = DateTime.Now;
             ticket.IdleDuration = ticket.AssignedDate - ticket.CreatedDate;
-            
 
             await _context.SaveChangesAsync();
             var ticketDto = _mapper.Map<TicketDto>(ticket);
             ticketDto.IdleDurationDisplay = TimeSpanFormatter.Format(ticket.IdleDuration.Value);
-
-            /*if (ticket.IdleDuration > TimeSpan.FromMinutes(2))
-            {
-                return Ok("You're late!!!!");
-            }*/
-            
             return Ok(ticketDto);
         }
-        /*public static string FormatTimeSpan(TimeSpan ts)
-        {
-            List<string> parts = new List<string>();
-            if (ts.Days > 0) parts.Add($"{ts.Days} day{(ts.Days != 1 ? "s" : "")}");
-            if (ts.Hours > 0) parts.Add($"{ts.Hours} hour{(ts.Hours != 1 ? "s" : "")}");
-            if (ts.Minutes > 0) parts.Add($"{ts.Minutes} minute{(ts.Minutes != 1 ? "s" : "")}");
-        
-            return parts.Count > 0 
-                ? string.Join(", ", parts) 
-                : "Less than a minute";
-        }*/
 
         [HttpGet("my-tickets")]
         [Authorize]
@@ -311,10 +287,7 @@ namespace InventoryManagement.API.Controllers
 
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
                 t => t.UserId == userId,
-                "User",
-                "Department",
-                "Inventory");
-
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
         
@@ -336,23 +309,18 @@ namespace InventoryManagement.API.Controllers
             {
                 // Create unique filename
                 var fileName = $"{Guid.NewGuid()}{fileExtension}";
-        
-                // Define upload path - make sure this directory exists
                 var uploadPath = Path.Combine("wwwroot", "uploads", "tickets");
-        
+
                 // Create directory if it doesn't exist
                 if (!Directory.Exists(uploadPath))
                     Directory.CreateDirectory(uploadPath);
 
                 var filePath = Path.Combine(uploadPath, fileName);
-
-                // Save file
                 using (var stream = new FileStream(filePath, FileMode.Create))
                 {
                     await file.CopyToAsync(stream);
                 }
 
-                // Return the relative path that can be stored in the database
                 var relativePath = Path.Combine("uploads", "tickets", fileName);
                 return Ok(new { filePath = relativePath.Replace("\\", "/") });
             }
@@ -373,24 +341,20 @@ namespace InventoryManagement.API.Controllers
                 return Unauthorized("Invalid user ID");
             }
 
-            // Get the ticket
-            var ticket = await _ticketRepository.GetByIdAsync(id);
+            var ticket = await _ticketRepository.GetByIdWithIncludesAsync(
+                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
             if (ticket == null)
             {
                 return NotFound("Ticket not found");
             }
 
-            // Check if the current user is assigned to this ticket
             if (ticket.UserId != userId)
             {
                 return Forbid("You can only update priority for tickets assigned to you");
             }
 
-            // Update the priority
             ticket.Priority = priority;
-    
             await _ticketRepository.UpdateAsync(ticket);
-
             return Ok(_mapper.Map<TicketDto>(ticket));
         }
         
@@ -415,11 +379,8 @@ namespace InventoryManagement.API.Controllers
             if (!System.IO.File.Exists(filePath))
                 return NotFound("Attachment file not found");
 
-            // Use Path.GetFileName to get just the filename
             var fileName = Path.GetFileName(ticket.AttachmentPath);
             var mimeType = GetMimeType(Path.GetExtension(fileName));
-
-            // Use FileStreamResult for better memory management
             var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
             return new FileStreamResult(fileStream, mimeType)
             {
@@ -443,7 +404,5 @@ namespace InventoryManagement.API.Controllers
                 _ => "application/octet-stream"
             };
         }
-
-        
     }
 }

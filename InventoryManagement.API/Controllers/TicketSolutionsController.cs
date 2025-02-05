@@ -70,14 +70,20 @@ namespace InventoryManagement.API.Controllers
     
             // Check if the ticket exists and is assigned to the current user
             var ticket = await _context.Tickets
-                .FirstOrDefaultAsync(x => x.Id == createUpdateDto.TicketId && x.UserId == currentUserId);
-    
+                .FirstOrDefaultAsync(x => x.Id == createUpdateDto.TicketId);
+
             if (ticket == null)
+            {
+                return NotFound("Ticket not found");
+            }
+
+            // Check if the current user is assigned to this ticket
+            if (ticket.UserId != currentUserId)
             {
                 return BadRequest("You can only create solutions for tickets assigned to you");
             }
 
-            var ticketSolution = await _context.TicketSolutions.FirstOrDefaultAsync(x=> x.TicketId == createUpdateDto.TicketId);
+            var ticketSolution = await _context.TicketSolutions.FirstOrDefaultAsync(x => x.TicketId == createUpdateDto.TicketId);
             if (ticketSolution != null)
             {
                 return BadRequest("Çağrı zaten çözümlendi.");

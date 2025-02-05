@@ -22,6 +22,36 @@ namespace InventoryManagement.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("InventoryManagement.Core.Entities.AssignmentTime", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("ProblemTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan>("TimeToAssign")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("UpdatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProblemTypeId");
+
+                    b.ToTable("AssignmentTimes");
+                });
+
             modelBuilder.Entity("InventoryManagement.Core.Entities.CancelReason", b =>
                 {
                     b.Property<int>("Id")
@@ -497,7 +527,7 @@ namespace InventoryManagement.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("DepartmentId")
+                    b.Property<int>("GroupId")
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
@@ -512,7 +542,7 @@ namespace InventoryManagement.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("DepartmentId");
+                    b.HasIndex("GroupId");
 
                     b.ToTable("ProblemTypes");
                 });
@@ -627,7 +657,6 @@ namespace InventoryManagement.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("AttachmentPath")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("CreatedById")
@@ -636,12 +665,12 @@ namespace InventoryManagement.Infrastructure.Migrations
                     b.Property<DateTime>("CreatedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("DepartmentId")
-                        .HasColumnType("int");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("GroupId")
+                        .HasColumnType("int");
 
                     b.Property<long?>("IdleDuration")
                         .HasColumnType("bigint");
@@ -687,7 +716,7 @@ namespace InventoryManagement.Infrastructure.Migrations
 
                     b.HasIndex("CreatedById");
 
-                    b.HasIndex("DepartmentId");
+                    b.HasIndex("GroupId");
 
                     b.HasIndex("InventoryId");
 
@@ -1086,6 +1115,17 @@ namespace InventoryManagement.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("InventoryManagement.Core.Entities.AssignmentTime", b =>
+                {
+                    b.HasOne("InventoryManagement.Core.Entities.ProblemType", "ProblemType")
+                        .WithMany()
+                        .HasForeignKey("ProblemTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ProblemType");
+                });
+
             modelBuilder.Entity("InventoryManagement.Core.Entities.CancelledTicket", b =>
                 {
                     b.HasOne("InventoryManagement.Core.Entities.CancelReason", "CancelReason")
@@ -1223,13 +1263,13 @@ namespace InventoryManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("InventoryManagement.Core.Entities.ProblemType", b =>
                 {
-                    b.HasOne("InventoryManagement.Core.Entities.Department", "Department")
+                    b.HasOne("InventoryManagement.Core.Entities.Group", "Group")
                         .WithMany()
-                        .HasForeignKey("DepartmentId")
+                        .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Department");
+                    b.Navigation("Group");
                 });
 
             modelBuilder.Entity("InventoryManagement.Core.Entities.SolutionReview", b =>
@@ -1266,9 +1306,9 @@ namespace InventoryManagement.Infrastructure.Migrations
                         .WithMany()
                         .HasForeignKey("CreatedById");
 
-                    b.HasOne("InventoryManagement.Core.Entities.Department", "Department")
+                    b.HasOne("InventoryManagement.Core.Entities.Group", "Group")
                         .WithMany()
-                        .HasForeignKey("DepartmentId")
+                        .HasForeignKey("GroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1284,7 +1324,7 @@ namespace InventoryManagement.Infrastructure.Migrations
 
                     b.Navigation("CreatedBy");
 
-                    b.Navigation("Department");
+                    b.Navigation("Group");
 
                     b.Navigation("Inventory");
 

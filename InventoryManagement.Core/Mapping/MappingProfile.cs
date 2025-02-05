@@ -1,6 +1,7 @@
 using InventoryManagement.Core.DTOs.User;
 using InventoryManagement.Core.Entities;
 using AutoMapper;
+using InventoryManagement.Core.DTOs.AssignmentTime;
 using InventoryManagement.Core.DTOs.Auth;
 using InventoryManagement.Core.DTOs.Company;
 using InventoryManagement.Core.DTOs.Department;
@@ -75,6 +76,10 @@ public class MappingProfile : Profile
         
         CreateMap<CreateUpdateSolutionTimeDto, SolutionTime>();
         
+        CreateMap<AssignmentTime, AssignmentTimeDto>()
+            .ForMember(dest => dest.ProblemTypeName, 
+                opt => opt.MapFrom(src => src.ProblemType.Name));
+        CreateMap<CreateUpdateAssignmentTimeDto, AssignmentTime>();
         
 
         

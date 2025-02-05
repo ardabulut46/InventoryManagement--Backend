@@ -23,6 +23,6 @@ public class CreateTicketDto
     
     [Required(ErrorMessage = "Öncelik seviyesi zorunludur")]
     public TicketPriority Priority { get; set; }
-    public string AttachmentPath { get; set; }
+    public string? AttachmentPath { get; set; }
     public TimeSpan? IdleDuration { get; set; }
 }

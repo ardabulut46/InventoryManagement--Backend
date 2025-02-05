@@ -20,7 +20,7 @@ public class ProblemTypesController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProblemType>>> GetProblemTypes()
     {
         var problemTypes = await _context.ProblemTypes
-            .Include(p => p.Department)
+            .Include(p => p.Group)
             .ToListAsync();
         return Ok(problemTypes);
     }
@@ -30,7 +30,7 @@ public class ProblemTypesController : ControllerBase
     public async Task<ActionResult<IEnumerable<ProblemType>>> GetActiveProblemTypes()
     {
         var problemTypes = await _context.ProblemTypes
-            .Include(p => p.Department)
+            .Include(p => p.Group)
             .Where(p => p.IsActive)
             .ToListAsync();
         return Ok(problemTypes);
@@ -40,14 +40,14 @@ public class ProblemTypesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ProblemType>> CreateProblemType(CreateProblemTypeDto dto)
     {
-        var department = await _context.Departments.FindAsync(dto.DepartmentId);
-        if (department == null)
-            return BadRequest("Invalid department ID");
+        var group = await _context.Groups.FindAsync(dto.GroupId);
+        if (group == null)
+            return BadRequest("Invalid Group ID");
 
         var problemType = new ProblemType
         {
             Name = dto.Name,
-            DepartmentId = dto.DepartmentId,
+            GroupId = dto.GroupId,
             IsActive = true,
             CreatedDate = DateTime.UtcNow
         };
@@ -65,9 +65,9 @@ public class ProblemTypesController : ControllerBase
         if (id != problemType.Id)
             return BadRequest();
 
-        var department = await _context.Departments.FindAsync(problemType.DepartmentId);
-        if (department == null)
-            return BadRequest("Invalid department ID");
+        var Group = await _context.Groups.FindAsync(problemType.GroupId);
+        if (Group == null)
+            return BadRequest("Invalid Group ID");
 
         _context.Entry(problemType).State = EntityState.Modified;
 

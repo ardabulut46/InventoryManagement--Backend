@@ -34,6 +34,7 @@ public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, in
     public DbSet<PendingTicket> PendingTickets { get; set; }
     public DbSet<SolutionReview> SolutionReviews { get; set; }
     public DbSet<UsersAssignedTickets> UsersAssignedTickets { get; set; }
+    public DbSet<AssignmentTime> AssignmentTimes { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

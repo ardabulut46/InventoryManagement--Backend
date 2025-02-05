@@ -18,6 +18,7 @@ using Microsoft.EntityFrameworkCore;
 namespace InventoryManagement.API.Controllers
 {
     // API/Controllers/UsersController.cs
+    [Authorize(Roles = "Admin")]
     [ApiController]
     [Route("api/[controller]")]
     public class UsersController : ControllerBase
@@ -47,20 +48,9 @@ namespace InventoryManagement.API.Controllers
 
         //[Authorize(Policy = "CanView")]
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers([FromQuery] bool includeAll = false)
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
-            IEnumerable<User> users;
-            if (includeAll)
-            {
-                users = await _context.Users
-                    .Include(u => u.Department)
-                    .Include(u => u.Group)
-                    .ToListAsync();
-            }
-            else
-            {
-                users = await _userRepository.GetAllAsync();
-            }
+            var users = await _userRepository.GetAllAsync();
             return Ok(_mapper.Map<IEnumerable<UserDto>>(users));
         }
 
@@ -73,6 +63,7 @@ namespace InventoryManagement.API.Controllers
 
             return Ok(_mapper.Map<UserDto>(user));
         }
+
 
         //[Authorize(Roles = "Admin")]
         [HttpPost]
@@ -89,7 +80,7 @@ namespace InventoryManagement.API.Controllers
             var user = _mapper.Map<User>(createUserDto);
             user.UserName = createUserDto.Email;
             user.GroupId = group.Id;
-            user.DepartmentId = group.DepartmentId;  // Automatically set department from group
+            user.DepartmentId = group.DepartmentId; 
 
             var result = await _userManager.CreateAsync(user, createUserDto.Password);
 

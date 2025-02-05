@@ -1,4 +1,4 @@
-using InventoryManagement.Core.DTOs.Department;
+using InventoryManagement.Core.DTOs.Group;
 using InventoryManagement.Core.DTOs.Inventory;
 using InventoryManagement.Core.DTOs.User;
 using InventoryManagement.Core.Enums;
@@ -10,8 +10,8 @@ public class TicketDto
     public int Id { get; set; }
     public string RegistrationNumber { get; set; }
     public int UserId { get; set; }
-    public int DepartmentId { get; set; }
-    public DepartmentDto Department { get; set; }
+    public int GroupId { get; set; }
+    public GroupDto Group { get; set; }
     public UserDto User { get; set; }  
     public int? InventoryId { get; set; }
     public InventoryDto Inventory { get; set; }
@@ -27,7 +27,7 @@ public class TicketDto
     public DateTime CreatedDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
     public int CreatedById { get; set; }
-    public Entities.User CreatedBy { get; set; }
+    public UserDto CreatedBy { get; set; }
     public DateTime AssignedDate { get; set; }
     public TimeSpan? IdleDuration { get; set; }
     public string IdleDurationDisplay { get; set; }
