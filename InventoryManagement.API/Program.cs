@@ -147,6 +147,10 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IValidator<CreateInventoryDto>, CreateInventoryDtoValidator>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+builder.Services.AddHttpClient<OpenRouterService>();
+builder.Services.AddHttpClient<DeepSeekService>();
+builder.Services.AddScoped<OpenRouterService>();
+builder.Services.AddScoped<DeepSeekService>();
 
 var app = builder.Build();
 

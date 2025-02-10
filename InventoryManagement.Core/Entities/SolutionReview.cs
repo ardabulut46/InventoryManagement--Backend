@@ -12,6 +12,6 @@ public class SolutionReview : BaseEntity
     
     public string Notes { get; set; }
 
-    public TimeSpan HowLate { get; set; }
+    public TimeSpan? HowMuchLate { get; set; }
     
 }

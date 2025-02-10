@@ -18,5 +18,7 @@ public class TicketSolution : BaseEntity
     public SolutionType SolutionType { get; set; }
 
     public DateTime SolutionDate { get; set; } = DateTime.Now;
+
+    public virtual SolutionReview? SolutionReview { get; set; }      
     
 }

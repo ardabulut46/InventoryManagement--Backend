@@ -6,5 +6,5 @@ public class CreateSolutionReviewDto
     public bool IsInTime { get; set; }
     public int? DelayReasonId { get; set; }
     public string Notes { get; set; }
-    public TimeSpan HowLate { get; set; }
+    public TimeSpan? HowMuchLate { get; set; }
 }

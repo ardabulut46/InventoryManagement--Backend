@@ -18,7 +18,7 @@ using Microsoft.EntityFrameworkCore;
 namespace InventoryManagement.API.Controllers
 {
     // API/Controllers/UsersController.cs
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     [ApiController]
     [Route("api/[controller]")]
     public class UsersController : ControllerBase
@@ -45,7 +45,8 @@ namespace InventoryManagement.API.Controllers
             _groupRepository = groupRepository;
             _context = context;
         }
-
+        
+        
         //[Authorize(Policy = "CanView")]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()

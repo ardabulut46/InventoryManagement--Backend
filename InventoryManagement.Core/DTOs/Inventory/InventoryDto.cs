@@ -1,5 +1,6 @@
 using InventoryManagement.Core.DTOs.Company;
 using InventoryManagement.Core.DTOs.User;
+using InventoryManagement.Core.Enums;
 
 namespace InventoryManagement.Core.DTOs.Inventory;
 
@@ -17,6 +18,8 @@ public class InventoryDto
     public string InvoiceAttachmentPath { get; set; }
     
     public int? SupportCompanyId { get; set; }
+    public int PurchasePrice { get; set; }
+    public PurchaseCurrency PurchaseCurrency { get; set; }
     public CompanyDto SupportCompany { get; set; }
     public string Family { get; set; }
     public string Type { get; set; }

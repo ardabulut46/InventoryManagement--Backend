@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using InventoryManagement.Core.Enums;
 
 namespace InventoryManagement.Core.DTOs.Inventory;
 
@@ -25,6 +26,8 @@ public class UpdateInventoryDto
     
     public int? CreatedUserId { get; set; }
     public string Location { get; set; }
+    public int PurchasePrice { get; set; }
+    public PurchaseCurrency PurchaseCurrency { get; set; }
     public string Status { get; set; }
     public string Room { get; set; }
     public string Floor { get; set; }

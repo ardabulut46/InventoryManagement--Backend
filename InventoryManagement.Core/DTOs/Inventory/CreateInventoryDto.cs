@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using InventoryManagement.Core.Enums;
 
 namespace InventoryManagement.Core.DTOs.Inventory;
 
@@ -29,6 +30,8 @@ public class CreateInventoryDto
     public string Block { get; set; }
     public string Department { get; set; }
     public DateTime PurchaseDate { get; set; }
+    public int PurchasePrice { get; set; }
+    public PurchaseCurrency PurchaseCurrency { get; set; }
     
     public string? InvoiceAttachmentPath { get; set; }
     public DateTime? WarrantyStartDate { get; set; }

@@ -7,6 +7,7 @@ using InventoryManagement.Core.DTOs.Company;
 using InventoryManagement.Core.DTOs.Department;
 using InventoryManagement.Core.DTOs.Group;
 using InventoryManagement.Core.DTOs.Inventory;
+using InventoryManagement.Core.DTOs.SolutionReview;
 using InventoryManagement.Core.DTOs.SolutionTime;
 using InventoryManagement.Core.DTOs.Ticket;
 using InventoryManagement.Core.DTOs.TicketHistory;
@@ -80,6 +81,15 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ProblemTypeName, 
                 opt => opt.MapFrom(src => src.ProblemType.Name));
         CreateMap<CreateUpdateAssignmentTimeDto, AssignmentTime>();
+        
+        
+        CreateMap<CreateSolutionReviewDto, SolutionReview>()
+            .ForMember(dest => dest.HowMuchLate, 
+                opt => opt.MapFrom(src => src.HowMuchLate));
+
+        CreateMap<SolutionReview, SolutionReviewDto>()
+            .ForMember(dest => dest.HowLate, 
+                opt => opt.MapFrom(src => src.HowMuchLate ?? TimeSpan.Zero));
         
 
         

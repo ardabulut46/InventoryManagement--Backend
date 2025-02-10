@@ -186,5 +186,14 @@ public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, in
         )
         .HasColumnType("bigint");
 
+    modelBuilder.Entity<SolutionReview>()
+        .Property(sr => sr.HowMuchLate)
+        .HasConversion(
+            sr => sr.HasValue ? sr.Value.Ticks : (long?)null,
+            sr => sr.HasValue ? TimeSpan.FromTicks(sr.Value) : null
+        )
+        .HasColumnType("bigint");
+
+
     }
 }

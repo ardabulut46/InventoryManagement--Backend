@@ -1,3 +1,5 @@
+using InventoryManagement.Core.Enums;
+
 namespace InventoryManagement.Core.Entities;
 
 public class Inventory : BaseEntity
@@ -17,6 +19,8 @@ public class Inventory : BaseEntity
     public string Brand { get; set; }
     public string Model { get; set; }
     public string Location { get; set; }
+    public int? PurchasePrice { get; set; }
+    public PurchaseCurrency? PurchaseCurrency { get; set; }
     public string Status { get; set; }
     public string Room { get; set; }
     public string Floor { get; set; }

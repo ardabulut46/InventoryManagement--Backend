@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Admin")]
+//[Authorize(Roles = "Admin")]
 
 public class GroupController : ControllerBase
 {
@@ -50,7 +50,7 @@ public class GroupController : ControllerBase
        return Ok(_mapper.Map<IEnumerable<GroupDto>>(groups));
    }
 
-   [Authorize(Roles = "Admin")]
+   //[Authorize(Roles = "Admin")]
    [HttpPost]
    public async Task<ActionResult<GroupDto>> CreateGroup(CreateGroupDto createGroupDto)
    {
