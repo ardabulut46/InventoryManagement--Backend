@@ -1,0 +1,3 @@
+runtime: aspnet
+env: flex
+main: InventoryManagementSystem/InventoryManagement.API
