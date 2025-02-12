@@ -14,7 +14,9 @@ public class Ticket : BaseEntity
     public User? User { get; set; }
     public int? CreatedById { get; set; }
     public User? CreatedBy { get; set; }
-    public string ProblemType { get; set; }
+    
+    public int? ProblemTypeId { get; set; }
+    public ProblemType? ProblemType { get; set; }
     public string? Location { get; set; }
     public string? Room { get; set; }
     public string Subject { get; set; }

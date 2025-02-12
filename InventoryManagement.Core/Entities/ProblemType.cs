@@ -6,4 +6,6 @@ public class ProblemType : BaseEntity
     public int GroupId { get; set; }
     public Group Group { get; set; } // group'a güncellenecek
     public bool IsActive { get; set; } = true;
+    
+    public ICollection<SolutionTime> SolutionTime { get; set; }
 }

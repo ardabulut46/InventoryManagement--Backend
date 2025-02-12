@@ -6,6 +6,7 @@ using InventoryManagement.Core.DTOs.Auth;
 using InventoryManagement.Core.DTOs.Company;
 using InventoryManagement.Core.DTOs.Department;
 using InventoryManagement.Core.DTOs.Group;
+using InventoryManagement.Core.DTOs.IdleDurationLimit;
 using InventoryManagement.Core.DTOs.Inventory;
 using InventoryManagement.Core.DTOs.SolutionReview;
 using InventoryManagement.Core.DTOs.SolutionTime;
@@ -74,6 +75,11 @@ public class MappingProfile : Profile
         CreateMap<SolutionTime, SolutionTimeDto>()
             .ForMember(dest => dest.ProblemTypeName, 
                 opt => opt.MapFrom(src => src.ProblemType.Name));
+        CreateMap<IdleDurationLimit, IdleDurationLimitDto>()
+            .ForMember(dest => dest.ProblemTypeName,
+                opt => opt.MapFrom(src => src.ProblemType.Name));
+
+        CreateMap<CreateUpdateIdleDurationLimitDto, IdleDurationLimit>();
         
         CreateMap<CreateUpdateSolutionTimeDto, SolutionTime>();
         

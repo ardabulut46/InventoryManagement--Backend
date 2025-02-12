@@ -96,7 +96,7 @@ namespace InventoryManagement.API.Controllers
 
             // Validate problem type and solution time before creating the solution
             var problemType = await _context.ProblemTypes
-                .FirstOrDefaultAsync(pt => pt.Name == ticket.ProblemType && pt.GroupId == ticket.GroupId);
+                .FirstOrDefaultAsync(pt => pt.Id == ticket.ProblemTypeId && pt.GroupId == ticket.GroupId);
             if (problemType == null)
             {
                 return BadRequest("Problem type not found");

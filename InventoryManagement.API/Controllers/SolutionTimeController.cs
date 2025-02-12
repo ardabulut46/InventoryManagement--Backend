@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using InventoryManagement.Core.Entities;
 using InventoryManagement.Core.Interfaces;
 using InventoryManagement.Core.DTOs.SolutionTime;
+using Microsoft.EntityFrameworkCore;
 
 namespace InventoryManagement.API.Controllers
 {
@@ -26,7 +27,8 @@ namespace InventoryManagement.API.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<SolutionTimeDto>>> GetSolutionTimes()
         {
-            var solutionTimes = await _solutionTimeRepository.GetAllWithIncludesAsync("ProblemType");
+            var solutionTimes = await _solutionTimeRepository.GetAllAsync(
+                include: query => query.Include(x => x.ProblemType));
             return Ok(_mapper.Map<IEnumerable<SolutionTimeDto>>(solutionTimes));
         }
 

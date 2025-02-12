@@ -35,6 +35,7 @@ public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, in
     public DbSet<SolutionReview> SolutionReviews { get; set; }
     public DbSet<UsersAssignedTickets> UsersAssignedTickets { get; set; }
     public DbSet<AssignmentTime> AssignmentTimes { get; set; }
+    public DbSet<IdleDurationLimit> IdleDurationLimits { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -193,6 +194,12 @@ public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, in
             sr => sr.HasValue ? TimeSpan.FromTicks(sr.Value) : null
         )
         .HasColumnType("bigint");
+    
+    modelBuilder.Entity<SolutionTime>()
+        .HasOne(st => st.ProblemType)
+        .WithMany(pt => pt.SolutionTime)
+        .HasForeignKey(st => st.ProblemTypeId)
+        .OnDelete(DeleteBehavior.Restrict);
 
 
     }

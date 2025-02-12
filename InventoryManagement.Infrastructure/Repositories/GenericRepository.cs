@@ -10,16 +10,24 @@ public class GenericRepository<T> : IGenericRepository<T> where T : BaseEntity
 {
     protected readonly ApplicationDbContext _context;
     
+    
     public GenericRepository(ApplicationDbContext context)
     {
         _context = context;
     }
-
-    public async Task<IEnumerable<T>> GetAllAsync()
+    public async Task<IEnumerable<T>> GetAllAsync(
+        Func<IQueryable<T>, IQueryable<T>> include = null)
     {
-        return await _context.Set<T>().ToListAsync();
+        IQueryable<T> query = _context.Set<T>();
+    
+        if (include != null)
+        {
+            query = include(query);
+        }
+    
+        return await query.ToListAsync();
     }
-
+    
     public async Task<T> GetByIdAsync(int id)
     {
         return await _context.Set<T>().FindAsync(id);

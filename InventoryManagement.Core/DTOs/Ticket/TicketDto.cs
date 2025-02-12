@@ -15,7 +15,7 @@ public class TicketDto
     public UserDto User { get; set; }  
     public int? InventoryId { get; set; }
     public InventoryDto Inventory { get; set; }
-    public string ProblemType { get; set; }
+    public int ProblemTypeId { get; set; }
     public string Location { get; set; }
     public string Room { get; set; }
     public string Subject { get; set; }

@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Numerics;
 using AutoMapper;
 using InventoryManagement.Core.DTOs.Ticket;
 using InventoryManagement.Core.Entities;
@@ -22,6 +24,7 @@ namespace InventoryManagement.API.Controllers
         private readonly IGenericRepository<Ticket> _ticketRepository;
         private readonly IUserRepository _userRepository;
         private readonly IGenericRepository<Inventory> _inventoryRepository;
+        private IGenericRepository<IdleDurationLimit> _idleDurationLimitRepository;
         private readonly IMapper _mapper;
         private readonly ApplicationDbContext _context;
 
@@ -29,6 +32,7 @@ namespace InventoryManagement.API.Controllers
             IGenericRepository<Ticket> ticketRepository,
             IUserRepository userRepository,
             IGenericRepository<Inventory> inventoryRepository,
+            IGenericRepository<IdleDurationLimit> idleDurationLimitRepository,
             IMapper mapper,
             ApplicationDbContext context)
         {
@@ -37,6 +41,7 @@ namespace InventoryManagement.API.Controllers
             _inventoryRepository = inventoryRepository;
             _mapper = mapper;
             _context = context;
+            _idleDurationLimitRepository = idleDurationLimitRepository;
         }
 
         [HttpGet]
@@ -110,7 +115,7 @@ namespace InventoryManagement.API.Controllers
                 RegistrationNumber = registrationNumber,
                 GroupId = problemType.GroupId, // Assign based on problem type
                 UserId = null, // Initially no user assigned
-                ProblemType = problemType.Name,
+                ProblemType = problemType,
                 Location = currentUser.Location,
                 Room = currentUser.Room,
                 Subject = createTicketDto.Subject,
@@ -291,6 +296,66 @@ namespace InventoryManagement.API.Controllers
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
         
+        [HttpGet("created-tickets")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TicketDto>>>MyTickets()
+        {
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+            var tickets = await _ticketRepository.SearchWithIncludesAsync(
+                t=>t.CreatedById == userId,
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+        }
+
+        [HttpGet("created-tickets/sla-breach")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TicketDto>>> MyTicketsSlaBreach()
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // Fetch tickets including the ProblemType and SolutionTime property
+            var tickets = await _ticketRepository.SearchWithIncludesAsync(
+                t => t.CreatedById == userId && t.ProblemTypeId != null,
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy", "ProblemType", "ProblemType.SolutionTime");
+
+            // Fetch idle duration limits for all problem types
+            var idleLimits = await _idleDurationLimitRepository.GetAllAsync();
+            var idleLimitsDict = idleLimits.ToDictionary(il => il.ProblemTypeId, il => il.TimeToAssign);
+
+            // Check each ticket against combined SLA (idle limit + solution time)
+            var slaBreachTickets = tickets.Where(t =>
+            {
+                // Only check tickets that have a ProblemType and a defined SolutionTime.
+                if (t.ProblemType == null || !t.ProblemType.SolutionTime.Any())
+                    return false;
+
+                // Get the solution time (assuming the first value)
+                var solutionTime = t.ProblemType.SolutionTime.First().TimeToSolve;
+
+                // Get the idle duration limit for this ProblemType if it exists (default to zero otherwise)
+                TimeSpan idleLimit = idleLimitsDict.ContainsKey(t.ProblemType.Id) 
+                    ? idleLimitsDict[t.ProblemType.Id] 
+                    : TimeSpan.Zero;
+
+                // Total allowed SLA time is the sum of idle duration limit and solution time
+                var totalAllowedTime = idleLimit + solutionTime;
+
+                // Check if the elapsed time from creation exceeds the total allowed SLA time.
+                return (DateTime.UtcNow - t.CreatedDate) > totalAllowedTime;
+            }).ToList();
+
+            return Ok(_mapper.Map<IEnumerable<TicketDto>>(slaBreachTickets));
+        }
+        
         [HttpPost("upload")]
         [Authorize]
         public async Task<IActionResult> UploadFile(IFormFile file)
@@ -387,6 +452,8 @@ namespace InventoryManagement.API.Controllers
                 FileDownloadName = fileName
             };
         }
+
+        
 
         private string GetMimeType(string extension)
         {
