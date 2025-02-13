@@ -453,7 +453,31 @@ namespace InventoryManagement.API.Controllers
             };
         }
 
-        
+        [HttpGet("my-all-tickets")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TicketDto>>> GetMyAllTickets()
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // Get user's group
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null || !user.GroupId.HasValue)
+            {
+                return BadRequest("User not found or not assigned to a group");
+            }
+
+            // Get tickets that are either in user's group or assigned to them
+            var tickets = await _ticketRepository.SearchWithIncludesAsync(
+                t => t.GroupId == user.GroupId || t.UserId == userId,
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+
+            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+        }
 
         private string GetMimeType(string extension)
         {

@@ -541,6 +541,17 @@ public class InventoryController : ControllerBase
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
 
+    [HttpGet("warranty-expired")]
+    public async Task<ActionResult<IEnumerable<InventoryDto>>> GetWarrantyExpiredInventories()
+    {
+        var inventories = await _inventoryRepository.SearchWithIncludesAsync(
+            i => i.WarrantyEndDate.HasValue && 
+                 i.WarrantyEndDate.Value < DateTime.Now,
+            "AssignedUser", "SupportCompany");
+        
+        return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
+    }
+
     [HttpGet("by-location/{location}")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetInventoryByLocation(string location)
     {
