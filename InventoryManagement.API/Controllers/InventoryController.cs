@@ -551,6 +551,20 @@ public class InventoryController : ControllerBase
         
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
+    
+    [HttpGet("warranty-active")]
+    public async Task<ActionResult<IEnumerable<InventoryDto>>> GetActiveWarrantyInventories()
+    {
+        var thirtyDaysFromNow = DateTime.Now.AddDays(30); // We consider warranties expiring in 30 days as "expiring soon"
+                                                                 // 30 gün sonra bitecek garanti süresini "yakında bitecek" olarak kabul ediyoruz
+    
+        var inventories = await _inventoryRepository.SearchWithIncludesAsync(
+            i => i.WarrantyEndDate.HasValue && 
+                 i.WarrantyEndDate.Value > thirtyDaysFromNow, // End date is more than 30 days away 
+            "AssignedUser", "SupportCompany");
+    
+        return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
+    }
 
     [HttpGet("by-location/{location}")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetInventoryByLocation(string location)

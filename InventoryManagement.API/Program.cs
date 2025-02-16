@@ -151,6 +151,7 @@ builder.Services.AddHttpClient<OpenRouterService>();
 builder.Services.AddHttpClient<DeepSeekService>();
 builder.Services.AddScoped<OpenRouterService>();
 builder.Services.AddScoped<DeepSeekService>();
+builder.Services.AddScoped<DynamicQueryService>();
 
 var app = builder.Build();
 
