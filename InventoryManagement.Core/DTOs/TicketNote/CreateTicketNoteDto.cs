@@ -8,5 +8,5 @@ public class CreateTicketNoteDto
     [Required]
     public string Note { get; set; }
     public string? NoteType { get; set; }
-    public List<IFormFile> Files { get; set; }
+    public List<IFormFile>? Files { get; set; }
 }
