@@ -10,4 +10,6 @@ public class TicketSolutionDto
     public string Description { get; set; }
     public int SolutionTypeId { get; set; }
     public DateTime SolutionDate { get; set; }
+    public string? AttachmentPath { get; set; }
+    public ICollection<TicketSolutionAttachmentDto> Attachments { get; set; }
 }

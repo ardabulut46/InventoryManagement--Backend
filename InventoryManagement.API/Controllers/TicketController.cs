@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using InventoryManagement.Core.DTOs.Inventory;
+using InventoryManagement.Core.DTOs.TransferTicket;
 using InventoryManagement.Core.DTOs.User;
 using InventoryManagement.Core.Enums;
 using InventoryManagement.Core.Helpers;
@@ -277,6 +278,80 @@ namespace InventoryManagement.API.Controllers
             var ticketDto = _mapper.Map<TicketDto>(ticket);
             ticketDto.IdleDurationDisplay = TimeSpanFormatter.Format(ticket.IdleDuration.Value);
             return Ok(ticketDto);
+        }
+
+        [HttpPost("{id}/transfer")]
+        [Authorize]
+        public async Task<ActionResult<TicketDto>> TransferTicket(int id, TransferTicketDto transferDto)
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // Get the ticket with includes
+            var ticket = await _ticketRepository.GetByIdWithIncludesAsync(
+                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
+
+            if (ticket == null)
+            {
+                return NotFound("Ticket not found");
+            }
+
+            // Verify if the user owns this ticket
+            if (ticket.UserId != userId)
+            {
+                return Forbid("You can only transfer tickets assigned to you");
+            }
+
+            // Verify the target group exists
+            var targetGroup = await _context.Groups
+                .Include(g => g.Department)
+                .FirstOrDefaultAsync(g => g.Id == transferDto.GroupId);
+
+            if (targetGroup == null)
+            {
+                return BadRequest("Target group not found");
+            }
+
+            // Create ticket history before transfer
+            var ticketHistory = new TicketHistory
+            {
+                TicketId = ticket.Id,
+                FromAssignedUserId = userId,
+                ToUserId = null, 
+                GroupId = transferDto.GroupId,
+                Subject = transferDto.Subject,
+                Description = transferDto.Description 
+            };
+
+            // Update ticket
+            ticket.GroupId = transferDto.GroupId;
+            ticket.UserId = null; // Remove current assignment
+            ticket.Status = "New"; // Reset status to new
+            ticket.AssignedDate = null; // Reset assigned date
+            ticket.IdleDuration = null; // Reset idle duration
+
+            // Save changes
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _context.TicketHistories.AddAsync(ticketHistory);
+                await _ticketRepository.UpdateAsync(ticket);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var updatedTicket = await _ticketRepository.GetByIdWithIncludesAsync(
+                    id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
+                return Ok(_mapper.Map<TicketDto>(updatedTicket));
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "An error occurred while transferring the ticket");
+            }
         }
 
         [HttpGet("my-tickets")]

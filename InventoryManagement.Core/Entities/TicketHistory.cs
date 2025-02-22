@@ -5,9 +5,6 @@ public class TicketHistory : BaseEntity
     public int TicketId { get; set; }
     public Ticket Ticket { get; set; }
 
-    public int UserId { get; set; }
-    public User User { get; set; }
-
     public int FromAssignedUserId { get; set; }
     public User FromAssignedUser { get; set; }
 

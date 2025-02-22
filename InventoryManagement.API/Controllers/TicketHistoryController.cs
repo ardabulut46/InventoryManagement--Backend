@@ -78,8 +78,7 @@ namespace InventoryManagement.API.Controllers
             }
 
             var entity = _mapper.Map<TicketHistory>(createDto);
-            entity.UserId = currentUserId;  // Set the current user as the creator
-
+            
             var created = await _repository.AddAsync(entity);
 
             return CreatedAtAction(

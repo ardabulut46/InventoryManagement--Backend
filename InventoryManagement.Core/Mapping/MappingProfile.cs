@@ -12,6 +12,7 @@ using InventoryManagement.Core.DTOs.SolutionReview;
 using InventoryManagement.Core.DTOs.SolutionTime;
 using InventoryManagement.Core.DTOs.Ticket;
 using InventoryManagement.Core.DTOs.TicketHistory;
+using InventoryManagement.Core.DTOs.TicketNote;
 using InventoryManagement.Core.DTOs.TicketSolution;
 using InventoryManagement.Core.Helpers;
 
@@ -101,7 +102,6 @@ public class MappingProfile : Profile
         
         CreateMap<TicketHistoryCreateUpdateDto, TicketHistory>()
             .ForMember(dest => dest.Ticket, opt => opt.Ignore())
-            .ForMember(dest => dest.User, opt => opt.Ignore())
             .ForMember(dest => dest.FromAssignedUser, opt => opt.Ignore())
             .ForMember(dest => dest.ToUser, opt => opt.Ignore())
             .ForMember(dest => dest.Group, opt => opt.Ignore());
@@ -110,8 +110,6 @@ public class MappingProfile : Profile
         CreateMap<TicketHistory, TicketHistoryDto>()
             .ForMember(dest => dest.TicketId, opt => opt.MapFrom(src => src.TicketId))
             .ForMember(dest => dest.TicketRegistrationNumber, opt => opt.MapFrom(src => src.Ticket.RegistrationNumber))
-            .ForMember(dest => dest.UserId, opt => opt.MapFrom(src => src.UserId))
-            .ForMember(dest => dest.UserEmail, opt => opt.MapFrom(src => src.User.Email))
             .ForMember(dest => dest.FromAssignedUserId, opt => opt.MapFrom(src => src.FromAssignedUserId))
             .ForMember(dest => dest.FromAssignedUserEmail, opt => opt.MapFrom(src => src.FromAssignedUser.Email))
             .ForMember(dest => dest.ToUserId, opt => opt.MapFrom(src => src.ToUserId))
@@ -127,9 +125,13 @@ public class MappingProfile : Profile
                     ? TimeSpanFormatter.Format(src.IdleDuration.Value) 
                     : "Not assigned"));
         
+        CreateMap<TicketNote, TicketNoteDto>()
+            .ForMember(d => d.CreatedByEmail, o => o.MapFrom(s => s.CreatedBy.Email))
+            .ForMember(d => d.TicketRegistrationNumber, o => o.MapFrom(s => s.Ticket.RegistrationNumber));
 
+        CreateMap<TicketNoteAttachment, TicketNoteAttachmentDto>();
         
-
+        
         CreateMap<TicketHistoryCreateUpdateDto, TicketHistory>();
         
         CreateMap<Company, CompanyDto>();

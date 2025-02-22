@@ -36,9 +36,12 @@ public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, in
     public DbSet<UsersAssignedTickets> UsersAssignedTickets { get; set; }
     public DbSet<AssignmentTime> AssignmentTimes { get; set; }
     public DbSet<IdleDurationLimit> IdleDurationLimits { get; set; }
+    public DbSet<TicketSolutionAttachment> TicketSolutionAttachments { get; set; }
+    public DbSet<TicketNote> TicketNotes { get; set; }
+    public DbSet<TicketNoteAttachment> TicketNoteAttachments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
-    {
+    { 
         base.OnModelCreating(modelBuilder);
         //group departman ilişkisi
         modelBuilder.Entity<Group>()
@@ -115,12 +118,7 @@ public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, in
         .WithMany()
         .HasForeignKey(th => th.TicketId)
         .OnDelete(DeleteBehavior.Restrict);
-
-    modelBuilder.Entity<TicketHistory>()
-        .HasOne(th => th.User)
-        .WithMany()
-        .HasForeignKey(th => th.UserId)
-        .OnDelete(DeleteBehavior.Restrict);
+    
 
     modelBuilder.Entity<TicketHistory>()
         .HasOne(th => th.FromAssignedUser)

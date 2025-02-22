@@ -19,6 +19,10 @@ public class TicketSolution : BaseEntity
 
     public DateTime SolutionDate { get; set; } = DateTime.Now;
 
+    public bool? IsChronicle { get; set; }
+    public string? AttachmentPath { get; set; }
+
     public virtual SolutionReview? SolutionReview { get; set; }      
     
+    public virtual ICollection<TicketSolutionAttachment> Attachments { get; set; } = new List<TicketSolutionAttachment>();
 }

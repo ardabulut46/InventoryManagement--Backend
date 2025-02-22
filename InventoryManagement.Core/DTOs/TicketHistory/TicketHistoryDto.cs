@@ -5,7 +5,6 @@ public class TicketHistoryDto
     public int Id { get; set; }
     public int TicketId { get; set; }
     public string TicketRegistrationNumber { get; set; }
-    public int UserId { get; set; }
     public string UserEmail { get; set; }
     public int? FromAssignedUserId { get; set; }
     public string FromAssignedUserEmail { get; set; }
