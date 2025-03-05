@@ -17,6 +17,8 @@ public class UserDto
     public string? Room { get; set; }
     public string? Group { get; set; }
     public PermissionDto Permissions { get; set; }
+    public string Role { get; set; }
+    public IEnumerable<string> RolePermissions { get; set; } = new List<string>();
     public DepartmentDto Department { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }

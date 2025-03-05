@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.CodeAnalysis.Elfie.Serialization;
 using Microsoft.EntityFrameworkCore;
 
 
@@ -29,6 +30,7 @@ namespace InventoryManagement.API.Controllers
         private readonly IPermissionRepository _permissionRepository;
         private readonly IGenericRepository<Group> _groupRepository;
         private readonly ApplicationDbContext _context;
+        private readonly RoleManager<Role> _roleManager;
 
         public UsersController(
             IUserRepository userRepository,
@@ -36,7 +38,8 @@ namespace InventoryManagement.API.Controllers
             UserManager<User> userManager,
             IPermissionRepository permissionRepository,
             IGenericRepository<Group> groupRepository,
-            ApplicationDbContext context)
+            ApplicationDbContext context,
+            RoleManager<Role> roleManager)
         {
             _userRepository = userRepository;
             _mapper = mapper;
@@ -44,6 +47,7 @@ namespace InventoryManagement.API.Controllers
             _permissionRepository = permissionRepository;
             _groupRepository = groupRepository;
             _context = context;
+            _roleManager = roleManager;
         }
         
         
@@ -78,19 +82,33 @@ namespace InventoryManagement.API.Controllers
             if (group == null)
                 return BadRequest("Geçersiz grup");
 
+            // Verify the role exists
+            if (!string.IsNullOrEmpty(createUserDto.Role))
+            {
+                var roleExists = await _roleManager.RoleExistsAsync(createUserDto.Role);
+                if (!roleExists)
+                    return BadRequest($"Rol '{createUserDto.Role}' bulunamadı");
+            }
+
             var user = _mapper.Map<User>(createUserDto);
             user.UserName = createUserDto.Email;
             user.GroupId = group.Id;
-            user.DepartmentId = group.DepartmentId; 
+            user.DepartmentId = group.DepartmentId;
 
             var result = await _userManager.CreateAsync(user, createUserDto.Password);
 
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            await _userManager.AddToRoleAsync(user, createUserDto.Role);
+            // Assign the user to the specified role
+            if (!string.IsNullOrEmpty(createUserDto.Role))
+            {
+                var roleResult = await _userManager.AddToRoleAsync(user, createUserDto.Role);
+                if (!roleResult.Succeeded)
+                    return BadRequest(roleResult.Errors);
+            }
 
-            // Create permission with values from DTO
+            // Create basic permission for backward compatibility
             var permission = new Permission
             {
                 UserId = user.Id,
@@ -106,7 +124,7 @@ namespace InventoryManagement.API.Controllers
             var userWithPermissions = await _userManager.FindByIdAsync(user.Id.ToString());
             var userDto = _mapper.Map<UserDto>(userWithPermissions);
 
-            // Add permissions to response
+            // Add basic permissions to response
             userDto.Permissions = new PermissionDto
             {
                 CanView = permission.CanView,
@@ -115,12 +133,29 @@ namespace InventoryManagement.API.Controllers
                 CanDelete = permission.CanDelete
             };
 
-            return CreatedAtAction(nameof(GetUser), 
-                new { id = user.Id }, 
+            // Include role information in the response
+            if (!string.IsNullOrEmpty(createUserDto.Role))
+            {
+                // Get role details to include permissions in the response
+                var role = await _roleManager.FindByNameAsync(createUserDto.Role);
+                if (role != null)
+                {
+                    var rolePermissions = await _context.RolePermissions
+                        .Where(rp => rp.RoleId == role.Id)
+                        .Select(rp => rp.Permission)
+                        .ToListAsync();
+
+                    userDto.Role = createUserDto.Role;
+                    userDto.RolePermissions = rolePermissions;
+                }
+            }
+
+            return CreatedAtAction(nameof(GetUser),
+                new { id = user.Id },
                 userDto);
         }
-        
-        
+
+
         [HttpPost("change-password")]
         [Authorize]  // sadece giriş yapmış kullanıcılar şifre değiştirebilir
         public async Task<IActionResult> ChangePassword(ChangePasswordDto changePasswordDto)
@@ -157,6 +192,7 @@ namespace InventoryManagement.API.Controllers
             return NoContent();
         }
 
+        [Authorize(Policy = "Users:Delete")]
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {

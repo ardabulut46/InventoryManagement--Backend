@@ -1,4 +1,4 @@
-
+using System.Net;
 using System.Security.Claims;
 using System.Text;
 using FluentValidation;
@@ -16,6 +16,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Microsoft.SemanticKernel;
+using Codeblaze.SemanticKernel.Connectors.Ollama;
+using InventoryManagement.API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -38,6 +41,10 @@ builder.Configuration
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
 
+/*var semanticKernel = Kernel.CreateBuilder()
+    .AddOllamaChatCompletion("deepseek-r1:latest", "http://localhost:11434");
+builder.Services.AddSingleton(semanticKernel.Build());*/
+
 var configuration = builder.Configuration;
 
 // Database Configuration
@@ -55,12 +62,14 @@ builder.Services.AddIdentityCore<User>(opt =>
     opt.Password.RequireDigit = false;
     opt.Password.RequireUppercase = false;
 })
-.AddRoles<IdentityRole<int>>()
+.AddRoles<Role>()
+.AddRoleManager<RoleManager<Role>>()
 .AddSignInManager<SignInManager<User>>()
 .AddEntityFrameworkStores<ApplicationDbContext>();
 
 // Authorization Service
-builder.Services.AddAuthorization(options =>
+builder.Services.AddApplicationAuthorizationPolicies();
+/*builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("CanView", policy =>
         policy.RequireClaim("Permission", "CanView"));
@@ -71,6 +80,7 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("CanDelete", policy =>
         policy.RequireClaim("Permission", "CanDelete"));
 });
+*/
 
 // Authentication & JWT Configuration
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -139,6 +149,9 @@ builder.Services.AddCors(options =>
 
 
 // Service Registrations
+builder.Services.AddHttpClient();
+builder.Services.AddKernel()
+    .AddOllamaChatCompletion("deepseek-r1:latest", "http://localhost:11434");
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddAutoMapper(typeof(MappingProfile));
@@ -147,13 +160,14 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IValidator<CreateInventoryDto>, CreateInventoryDtoValidator>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
+
 builder.Services.AddHttpClient<OpenRouterService>();
 builder.Services.AddHttpClient<DeepSeekService>();
-builder.Services.AddScoped<OpenRouterService>();
-builder.Services.AddScoped<DeepSeekService>();
+
 builder.Services.AddScoped<DynamicQueryService>();
 
-var app = builder.Build();
+
+var app = builder.Build();  
 
 // Seed Roles and Admin User
 using (var scope = app.Services.CreateScope())

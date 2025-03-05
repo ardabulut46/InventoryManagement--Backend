@@ -10,7 +10,7 @@ namespace InventoryManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+  //  [Authorize(Roles = "Admin")]
     public class DepartmentController : ControllerBase
     {
         private readonly IGenericRepository<Department> _departmentRepository;
@@ -43,7 +43,7 @@ namespace InventoryManagement.API.Controllers
         }
 
         [HttpPost]
-        [Authorize(Policy = "CanCreate")]
+        //[Authorize(Policy = "CanCreate")]
         public async Task<ActionResult<DepartmentDto>> CreateDepartment(DepartmentDto departmentDto)
         {
             if (string.IsNullOrWhiteSpace(departmentDto.Name))

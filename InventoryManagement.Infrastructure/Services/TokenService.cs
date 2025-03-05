@@ -19,7 +19,7 @@ public class TokenService : ITokenService
     private readonly IPermissionRepository _permissionRepository;
     private readonly ApplicationDbContext _context;
     
-    public TokenService(IConfiguration config, UserManager<User> userManager,IPermissionRepository permissionRepository,ApplicationDbContext context)
+    public TokenService(IConfiguration config, UserManager<User> userManager, IPermissionRepository permissionRepository, ApplicationDbContext context)
     {
         _config = config;
         _userManager = userManager;
@@ -58,6 +58,7 @@ public class TokenService : ITokenService
             new Claim(ClaimTypes.Email, user.Email)
         };
 
+        // Add basic permissions for backward compatibility
         if (finalCanView)
             claims.Add(new Claim("Permission", "CanView"));
         if (finalCanCreate)
@@ -67,8 +68,27 @@ public class TokenService : ITokenService
         if (finalCanDelete)
             claims.Add(new Claim("Permission", "CanDelete"));
 
+        // Get user roles
         var roles = await _userManager.GetRolesAsync(user);
         claims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+        
+        // Get role-specific permissions
+        var roleIds = await _context.UserRoles
+            .Where(ur => ur.UserId == user.Id)
+            .Select(ur => ur.RoleId)
+            .ToListAsync();
+            
+        var rolePermissions = await _context.RolePermissions
+            .Where(rp => roleIds.Contains(rp.RoleId))
+            .Select(rp => rp.Permission)
+            .Distinct()
+            .ToListAsync();
+            
+        // Add all role-specific permissions as claims
+        foreach (var permission in rolePermissions)
+        {
+            claims.Add(new Claim("Permission", permission));
+        }
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["TokenKey"]));
         var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha512Signature);

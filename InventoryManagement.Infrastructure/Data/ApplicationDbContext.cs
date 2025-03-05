@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore.SqlServer;
 
 namespace InventoryManagement.Infrastructure.Data;
 
-public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, int>
+public class ApplicationDbContext : IdentityDbContext<User,Role, int>
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) 
         : base(options)
@@ -39,6 +39,7 @@ public class ApplicationDbContext : IdentityDbContext<User,IdentityRole<int>, in
     public DbSet<TicketSolutionAttachment> TicketSolutionAttachments { get; set; }
     public DbSet<TicketNote> TicketNotes { get; set; }
     public DbSet<TicketNoteAttachment> TicketNoteAttachments { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     { 
