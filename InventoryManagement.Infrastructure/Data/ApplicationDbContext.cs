@@ -40,15 +40,59 @@ public class ApplicationDbContext : IdentityDbContext<User,Role, int>
     public DbSet<TicketNote> TicketNotes { get; set; }
     public DbSet<TicketNoteAttachment> TicketNoteAttachments { get; set; }
     public DbSet<RolePermission> RolePermissions { get; set; }
+    public DbSet<InventoryAttachment> InventoryAttachments { get; set; }
+    public DbSet<Family> Families { get; set; }
+    public DbSet<InventoryType> InventoryTypes { get; set; }
+    public DbSet<Brand> Brands { get; set; }
+    public DbSet<Model> Models { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     { 
         base.OnModelCreating(modelBuilder);
+        
+        modelBuilder.Entity<Inventory>()
+            .HasOne(i => i.Family)
+            .WithMany(f => f.Inventories)
+            .HasForeignKey(i => i.FamilyId)
+            .OnDelete(DeleteBehavior.Restrict);
+    
+        // Inventory - InventoryType relationship
+        modelBuilder.Entity<Inventory>()
+            .HasOne(i => i.Type)
+            .WithMany(t => t.Inventories)
+            .HasForeignKey(i => i.TypeId)
+            .OnDelete(DeleteBehavior.Restrict);
+    
+        // Inventory - Brand relationship
+        modelBuilder.Entity<Inventory>()
+            .HasOne(i => i.Brand)
+            .WithMany(b => b.Inventories)
+            .HasForeignKey(i => i.BrandId)
+            .OnDelete(DeleteBehavior.Restrict);
+    
+        // Inventory - Model relationship
+        modelBuilder.Entity<Inventory>()
+            .HasOne(i => i.Model)
+            .WithMany(m => m.Inventories)
+            .HasForeignKey(i => i.ModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+    
+        // Model - Brand relationship
+        modelBuilder.Entity<Model>()
+            .HasOne(m => m.Brand)
+            .WithMany()
+            .HasForeignKey(m => m.BrandId)
+            .OnDelete(DeleteBehavior.Restrict);
         //group departman ilişkisi
         modelBuilder.Entity<Group>()
             .HasOne(g => g.Department)
             .WithMany(d => d.Groups)
             .HasForeignKey(g => g.DepartmentId);
+        
+        modelBuilder.Entity<InventoryAttachment>()
+            .HasOne(a => a.Inventory)
+            .WithMany(i => i.Attachments)
+            .HasForeignKey(a => a.InventoryId);
         
         // Inventory - User ilişkisi
         modelBuilder.Entity<Inventory>()

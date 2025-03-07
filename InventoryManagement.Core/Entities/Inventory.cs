@@ -13,12 +13,19 @@ public class Inventory : BaseEntity
     public User LastUser { get; set; }
     
     public string? InvoiceAttachmentPath { get; set; }
+    public ICollection<InventoryAttachment> Attachments { get; set; }
     
-    public string Family { get; set; }
-    public string Type { get; set; }
-    public string Brand { get; set; }
-    public string Model { get; set; }
-    public string Location { get; set; }
+    public int? FamilyId { get; set; }
+    public Family? Family { get; set; }
+    
+    public int? TypeId { get; set; }
+    public InventoryType? Type { get; set; }
+    
+    public int? BrandId { get; set; }
+    public Brand? Brand { get; set; }
+    
+    public int? ModelId { get; set; }
+    public Model? Model { get; set; }
     public int? PurchasePrice { get; set; }
     public PurchaseCurrency? PurchaseCurrency { get; set; }
     public string Status { get; set; }
@@ -26,6 +33,7 @@ public class Inventory : BaseEntity
     public string Floor { get; set; }
     public string Block { get; set; }
     public string Department { get; set; }
+    public string Location { get; set; }
     public DateTime? WarrantyStartDate { get; set; }
     public DateTime? WarrantyEndDate { get; set; }
     

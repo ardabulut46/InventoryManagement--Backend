@@ -1,4 +1,5 @@
 using InventoryManagement.Core.DTOs.Company;
+using InventoryManagement.Core.DTOs.InventoryAttachment;
 using InventoryManagement.Core.DTOs.User;
 using InventoryManagement.Core.Enums;
 
@@ -21,10 +22,17 @@ public class InventoryDto
     public int PurchasePrice { get; set; }
     public PurchaseCurrency PurchaseCurrency { get; set; }
     public CompanyDto SupportCompany { get; set; }
-    public string Family { get; set; }
-    public string Type { get; set; }
-    public string Brand { get; set; }
-    public string Model { get; set; }
+   public int FamilyId { get; set; }
+    public string FamilyName { get; set; }
+    
+    public int TypeId { get; set; }
+    public string TypeName { get; set; }
+    
+    public int BrandId { get; set; }
+    public string BrandName { get; set; }
+    
+    public int ModelId { get; set; }
+    public string ModelName { get; set; }
     public string Location { get; set; }
     public string Status { get; set; }
     public string Room { get; set; }
@@ -38,4 +46,5 @@ public class InventoryDto
     public DateTime? UpdatedDate { get; set; }
     
     public ICollection<InventoryHistoryDto> InventoryHistory { get; set; }
+    public ICollection<InventoryAttachmentDto> Attachments { get; set; }
 }

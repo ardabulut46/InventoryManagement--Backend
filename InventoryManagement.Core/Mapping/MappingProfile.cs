@@ -5,9 +5,11 @@ using InventoryManagement.Core.DTOs.AssignmentTime;
 using InventoryManagement.Core.DTOs.Auth;
 using InventoryManagement.Core.DTOs.Company;
 using InventoryManagement.Core.DTOs.Department;
+using InventoryManagement.Core.DTOs.Family;
 using InventoryManagement.Core.DTOs.Group;
 using InventoryManagement.Core.DTOs.IdleDurationLimit;
 using InventoryManagement.Core.DTOs.Inventory;
+using InventoryManagement.Core.DTOs.InventoryAttachment;
 using InventoryManagement.Core.DTOs.SolutionReview;
 using InventoryManagement.Core.DTOs.SolutionTime;
 using InventoryManagement.Core.DTOs.Ticket;
@@ -134,9 +136,32 @@ public class MappingProfile : Profile
         
         CreateMap<TicketHistoryCreateUpdateDto, TicketHistory>();
         
+        CreateMap<Family, FamilyDto>();
+        CreateMap<FamilyDto, Family>();
+        
+        CreateMap<InventoryType, InventoryTypeDto>();
+        CreateMap<InventoryTypeDto, InventoryType>();
+        
+        CreateMap<Brand, BrandDto>();
+        CreateMap<BrandDto, Brand>();
+        
+        CreateMap<Model, ModelDto>()
+            .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand != null ? src.Brand.Name : null));
+        CreateMap<ModelDto, Model>();
+
+        // Update the Inventory mapping
+        CreateMap<Inventory, InventoryDto>()
+            .ForMember(dest => dest.AssignedUser, opt => opt.MapFrom(src => src.AssignedUser))
+            .ForMember(dest => dest.SupportCompany, opt => opt.MapFrom(src => src.SupportCompany))
+            .ForMember(dest => dest.FamilyName, opt => opt.MapFrom(src => src.Family != null ? src.Family.Name : null))
+            .ForMember(dest => dest.TypeName, opt => opt.MapFrom(src => src.Type != null ? src.Type.Name : null))
+            .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand != null ? src.Brand.Name : null))
+            .ForMember(dest => dest.ModelName, opt => opt.MapFrom(src => src.Model != null ? src.Model.Name : null));
+
         CreateMap<Company, CompanyDto>();
         CreateMap<CreateCompanyDto, Company>();
         CreateMap<UpdateCompanyDto, Company>();
+        CreateMap<InventoryAttachment, InventoryAttachmentDto>();
         
         CreateMap<InventoryHistory, InventoryHistoryDto>()
             .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User));

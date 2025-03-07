@@ -12,6 +12,7 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using OfficeOpenXml;
 using System.ComponentModel.DataAnnotations;
+using InventoryManagement.Core.DTOs.InventoryAttachment;
 using InventoryManagement.Infrastructure.Repositories;
 
 namespace InventoryManagement.API.Controllers
@@ -24,16 +25,20 @@ public class InventoryController : ControllerBase
     private readonly IMapper _mapper;
     private readonly IValidator<CreateInventoryDto> _validator;
     private readonly IUserRepository _userRepository;
+    private readonly ApplicationDbContext _context;
     
-    public InventoryController(IGenericRepository<Inventory> inventoryRepository, IMapper mapper, IValidator<CreateInventoryDto> validator, IUserRepository userRepository)
+    public InventoryController(IGenericRepository<Inventory> inventoryRepository, IMapper mapper, IValidator<CreateInventoryDto> validator, IUserRepository userRepository, ApplicationDbContext context)
     {
         _inventoryRepository = inventoryRepository;
         _mapper = mapper;
         _validator = validator;
         _userRepository = userRepository;
+        _context = context;
+        
     }
 
 
+    /*
     [HttpGet("export-template")]
     public IActionResult DownloadExcelTemplate()
     {
@@ -203,16 +208,20 @@ public class InventoryController : ControllerBase
         {
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
-    }
+    }*/
 
     [HttpGet]
-   //[Authorize(Policy = "CanView")]
+    //[Authorize(Policy = "CanView")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetInventories()
     {
         var inventories = await _inventoryRepository.GetAllWithIncludesAsync(
             "AssignedUser",
             "SupportCompany",
-            "InventoryHistory");
+            "InventoryHistory",
+            "Family",
+            "Type",
+            "Brand",
+            "Model");
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
 
@@ -223,50 +232,189 @@ public class InventoryController : ControllerBase
             id,
             "AssignedUser",
             "SupportCompany",
-            "InventoryHistory");
-        
+            "InventoryHistory",
+            "Attachments",
+            "Family",
+            "Type",
+            "Brand",
+            "Model");
+
         if (inventory == null)
             return NotFound();
 
         return Ok(_mapper.Map<InventoryDto>(inventory));
     }
 
-    //[Authorize(Roles = "Admin")]
-    [Authorize(Policy = "CanCreate")]
     [HttpPost]
-    public async Task<ActionResult<InventoryDto>> CreateInventory(CreateInventoryDto createInventoryDto)
+    public async Task<ActionResult<InventoryDto>> CreateInventory(
+        [FromForm] CreateInventoryDto createInventoryDto,
+        [FromForm] List<IFormFile> files = null,
+        [FromForm] string fileDescription = "")
     {
         var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(currentUserId, out int userId))
         {
             return Unauthorized("Invalid user ID");
         }
-        
+
         var validationResult = await _validator.ValidateAsync(createInventoryDto);
         if (!validationResult.IsValid)
         {
             return BadRequest(validationResult.Errors);
         }
-        
-        createInventoryDto.CreatedUserId = userId;
-        
-        var inventory = _mapper.Map<Inventory>(createInventoryDto);
-        var createdInventory = await _inventoryRepository.AddAsync(inventory);
-        
-        if (createInventoryDto.AssignedUserId.HasValue)
-        {
-            await _inventoryRepository.AddInventoryHistoryAsync(
-                createdInventory.Id,
-                createInventoryDto.AssignedUserId.Value,
-                "İlk atama");
-        }
 
-        return CreatedAtAction(
-            nameof(GetInventory), 
-            new { id = createdInventory.Id }, 
-            _mapper.Map<InventoryDto>(createdInventory));
+        createInventoryDto.CreatedUserId = userId;
+
+        // Declare createdInventory outside the try block
+        Inventory createdInventory = null;
+
+        using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            // Verify that the referenced entities exist
+            var familyExists = await _context.Families.AnyAsync(f => f.Id == createInventoryDto.FamilyId);
+            if (!familyExists)
+            {
+                return BadRequest($"Family with ID {createInventoryDto.FamilyId} does not exist.");
+            }
+
+            var typeExists = await _context.InventoryTypes.AnyAsync(t => t.Id == createInventoryDto.TypeId);
+            if (!typeExists)
+            {
+                return BadRequest($"Type with ID {createInventoryDto.TypeId} does not exist.");
+            }
+
+            var brandExists = await _context.Brands.AnyAsync(b => b.Id == createInventoryDto.BrandId);
+            if (!brandExists)
+            {
+                return BadRequest($"Brand with ID {createInventoryDto.BrandId} does not exist.");
+            }
+
+            var modelExists = await _context.Models.AnyAsync(m => m.Id == createInventoryDto.ModelId);
+            if (!modelExists)
+            {
+                return BadRequest($"Model with ID {createInventoryDto.ModelId} does not exist.");
+            }
+
+            var inventory = _mapper.Map<Inventory>(createInventoryDto);
+            createdInventory = await _inventoryRepository.AddAsync(inventory);
+
+            if (createInventoryDto.AssignedUserId.HasValue)
+            {
+                await _inventoryRepository.AddInventoryHistoryAsync(
+                    createdInventory.Id,
+                    createInventoryDto.AssignedUserId.Value,
+                    "İlk atama");
+            }
+            
+            if (files != null && files.Any() && !files.All(f => f.Length == 0))
+            {
+                // Define allowed file types
+                var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png" };
+                var inventoryId = createdInventory.Id;
+
+                var uploadedFiles = new List<string>(); // Track files we've written to disk
+                var attachmentsAdded = false;
+
+                foreach (var file in files)
+                {
+                    var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+                    if (!allowedExtensions.Contains(fileExtension))
+                    {
+                        continue; // Skip invalid files
+                    }
+
+                    // Create unique filename
+                    var fileName = $"{Guid.NewGuid()}{fileExtension}";
+
+                    // Define upload path
+                    var uploadPath = Path.Combine("wwwroot", "uploads", "inventory", inventoryId.ToString());
+
+                    // Create directory if it doesn't exist
+                    if (!Directory.Exists(uploadPath))
+                        Directory.CreateDirectory(uploadPath);
+
+                    var filePath = Path.Combine(uploadPath, fileName);
+                    var relativePath = Path.Combine("uploads", "inventory", inventoryId.ToString(), fileName)
+                        .Replace("\\", "/");
+
+                    // Save file
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await file.CopyToAsync(stream);
+                    }
+
+                    uploadedFiles.Add(filePath); // Track the file we just wrote
+
+                    // Create attachment
+                    var attachment = new InventoryAttachment
+                    {
+                        InventoryId = inventoryId,
+                        FileName = file.FileName,
+                        FilePath = relativePath,
+                        ContentType = file.ContentType,
+                        FileSize = file.Length,
+                        UploadDate = DateTime.Now,
+                        Description = fileDescription
+                    };
+
+                    // Add attachment to inventory
+                    if (createdInventory.Attachments == null)
+                    {
+                        createdInventory.Attachments = new List<InventoryAttachment>();
+                    }
+
+                    createdInventory.Attachments.Add(attachment);
+                    attachmentsAdded = true;
+                }
+
+                // Update inventory with attachments if any were added
+                if (attachmentsAdded)
+                {
+                    await _inventoryRepository.UpdateAsync(createdInventory);
+                }
+            }
+
+            // If we've reached this point without exceptions, commit the transaction
+            await transaction.CommitAsync();
+
+            return CreatedAtAction(
+                nameof(GetInventory),
+                new { id = createdInventory.Id },
+                _mapper.Map<InventoryDto>(createdInventory));
+        }
+        catch (Exception ex)
+        {
+            // Roll back the transaction
+            await transaction.RollbackAsync();
+
+            // Delete any uploaded files if they exist
+            CleanupUploadedFiles(createdInventory?.Id);
+
+            return StatusCode(500, $"Failed to create inventory: {ex.Message}");
+        }
     }
-    
+
+    private void CleanupUploadedFiles(int? inventoryId)
+    {
+        if (!inventoryId.HasValue) return;
+
+        var uploadPath = Path.Combine("wwwroot", "uploads", "inventory", inventoryId.Value.ToString());
+        if (Directory.Exists(uploadPath))
+        {
+            try
+            {
+                Directory.Delete(uploadPath, true); // Recursive delete
+            }
+            catch (Exception ex)
+            {
+                // Add proper logging here
+                // _logger.LogWarning(ex, "Failed to clean up uploaded files for inventory {InventoryId}", inventoryId.Value);
+            }
+        }
+    }
+
     [HttpPut("{id}/assign-user")]
     public async Task<IActionResult> AssignUser(int id, int userId, string notes = null)
     {
@@ -358,15 +506,30 @@ public class InventoryController : ControllerBase
         var inventory = await _inventoryRepository.GetByIdAsync(id);
         if (inventory == null)
             return NotFound();
-        
-        // Eğer assigned user değişmişse ve yeni bir atama yapılmışsa
-        if (inventory.AssignedUserId != updateInventoryDto.AssignedUserId && 
-            updateInventoryDto.AssignedUserId.HasValue)
+
+        // Verify that the referenced entities exist
+        var familyExists = await _context.Families.AnyAsync(f => f.Id == updateInventoryDto.FamilyId);
+        if (!familyExists)
         {
-            await _inventoryRepository.AddInventoryHistoryAsync(
-                id,
-                updateInventoryDto.AssignedUserId.Value,
-                "User reassignment"); //  "Kullanıcı değişimi" gibi bir not
+            return BadRequest($"Family with ID {updateInventoryDto.FamilyId} does not exist.");
+        }
+
+        var typeExists = await _context.InventoryTypes.AnyAsync(t => t.Id == updateInventoryDto.TypeId);
+        if (!typeExists)
+        {
+            return BadRequest($"Type with ID {updateInventoryDto.TypeId} does not exist.");
+        }
+
+        var brandExists = await _context.Brands.AnyAsync(b => b.Id == updateInventoryDto.BrandId);
+        if (!brandExists)
+        {
+            return BadRequest($"Brand with ID {updateInventoryDto.BrandId} does not exist.");
+        }
+
+        var modelExists = await _context.Models.AnyAsync(m => m.Id == updateInventoryDto.ModelId);
+        if (!modelExists)
+        {
+            return BadRequest($"Model with ID {updateInventoryDto.ModelId} does not exist.");
         }
 
         _mapper.Map(updateInventoryDto, inventory);
@@ -389,70 +552,179 @@ public class InventoryController : ControllerBase
     public async Task<ActionResult<IEnumerable<InventoryDto>>> SearchInventories(
         [FromQuery] string? searchTerm,
         [FromQuery] string? status,
-        [FromQuery] bool? hasUser)
+        [FromQuery] bool? hasUser,
+        [FromQuery] int? familyId,
+        [FromQuery] int? typeId,
+        [FromQuery] int? brandId,
+        [FromQuery] int? modelId)
     {
-        var query = await _inventoryRepository.SearchWithIncludesAsync(
-            inventory => 
-                (string.IsNullOrEmpty(searchTerm) || inventory.Model.Contains(searchTerm)) &&
-                (string.IsNullOrEmpty(status) || inventory.Status == status) &&
-                (!hasUser.HasValue || (hasUser.Value ? inventory.AssignedUserId != null : inventory.AssignedUserId == null)),
-            "AssignedUser", "SupportCompany", "InventoryHistory");
+        var inventories = await _inventoryRepository.GetAllWithIncludesAsync(
+            "AssignedUser",
+            "SupportCompany",
+            "Family",
+            "Type",
+            "Brand",
+            "Model");
 
-        
-        var result = _mapper.Map<IEnumerable<InventoryDto>>(query);
-        return Ok(result);
+        var filteredInventories = inventories.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(searchTerm))
+        {
+            filteredInventories = filteredInventories.Where(i =>
+                i.Barcode.Contains(searchTerm) ||
+                i.SerialNumber.Contains(searchTerm) ||
+                (i.Family != null && i.Family.Name.Contains(searchTerm)) ||
+                (i.Type != null && i.Type.Name.Contains(searchTerm)) ||
+                (i.Brand != null && i.Brand.Name.Contains(searchTerm)) ||
+                (i.Model != null && i.Model.Name.Contains(searchTerm)) ||
+                i.Location.Contains(searchTerm));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            filteredInventories = filteredInventories.Where(i => i.Status == status);
+        }
+
+        if (hasUser.HasValue)
+        {
+            filteredInventories = hasUser.Value
+                ? filteredInventories.Where(i => i.AssignedUserId.HasValue)
+                : filteredInventories.Where(i => !i.AssignedUserId.HasValue);
+        }
+
+        if (familyId.HasValue)
+        {
+            filteredInventories = filteredInventories.Where(i => i.FamilyId == familyId.Value);
+        }
+
+        if (typeId.HasValue)
+        {
+            filteredInventories = filteredInventories.Where(i => i.TypeId == typeId.Value);
+        }
+
+        if (brandId.HasValue)
+        {
+            filteredInventories = filteredInventories.Where(i => i.BrandId == brandId.Value);
+        }
+
+        if (modelId.HasValue)
+        {
+            filteredInventories = filteredInventories.Where(i => i.ModelId == modelId.Value);
+        }
+
+        return Ok(_mapper.Map<IEnumerable<InventoryDto>>(filteredInventories.ToList()));
     }
-    
+
     [HttpPost("{inventoryId}/upload-invoice")]
     [Authorize]
-    public async Task<IActionResult> UploadInvoice(int inventoryId, IFormFile file)
+    public async Task<IActionResult> UploadAttachments(int inventoryId, [FromForm] List<IFormFile> files,
+        [FromForm] string description = "")
     {
         // Verify inventory exists
-        var inventory = await _inventoryRepository.GetByIdAsync(inventoryId);
+        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(inventoryId, "Attachments");
         if (inventory == null)
             return NotFound("Inventory not found");
 
-        if (file == null || file.Length == 0)
-            return BadRequest("No file was provided");
+        if (files == null || !files.Any() || files.All(f => f.Length == 0))
+            return BadRequest("No files were provided");
 
         // Define allowed file types
         var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png" };
-        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
 
-        if (!allowedExtensions.Contains(fileExtension))
-            return BadRequest("Invalid file type. Allowed types are: pdf, doc, docx, txt, jpg, jpeg, png");
+        var results = new List<object>();
 
         try
         {
-            // Create unique filename
-            var fileName = $"{Guid.NewGuid()}{fileExtension}";
-        
-            // Define upload path - make sure this directory exists
-            var uploadPath = Path.Combine("wwwroot", "uploads", "invoices");
-        
-            // Create directory if it doesn't exist
-            if (!Directory.Exists(uploadPath))
-                Directory.CreateDirectory(uploadPath);
-
-            var filePath = Path.Combine(uploadPath, fileName);
-
-            // Save file
-            using (var stream = new FileStream(filePath, FileMode.Create))
+            foreach (var file in files)
             {
-                await file.CopyToAsync(stream);
+                var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+
+                if (!allowedExtensions.Contains(fileExtension))
+                {
+                    results.Add(new { fileName = file.FileName, error = "Invalid file type" });
+                    continue;
+                }
+
+                // Create unique filename
+                var fileName = $"{Guid.NewGuid()}{fileExtension}";
+
+                // Define upload path - make sure this directory exists
+                var uploadPath = Path.Combine("wwwroot", "uploads", "inventory", inventoryId.ToString());
+
+                // Create directory if it doesn't exist
+                if (!Directory.Exists(uploadPath))
+                    Directory.CreateDirectory(uploadPath);
+
+                var filePath = Path.Combine(uploadPath, fileName);
+
+                // Save file
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Create attachment
+                var relativePath = Path.Combine("uploads", "inventory", inventoryId.ToString(), fileName)
+                    .Replace("\\", "/");
+
+                var attachment = new InventoryAttachment
+                {
+                    InventoryId = inventoryId,
+                    FileName = file.FileName,
+                    FilePath = relativePath,
+                    ContentType = file.ContentType,
+                    FileSize = file.Length,
+                    UploadDate = DateTime.Now,
+                    Description = description
+                };
+
+                inventory.Attachments.Add(attachment);
+                results.Add(new { fileName = file.FileName, filePath = relativePath });
             }
 
-            // Update inventory with file path
-            var relativePath = Path.Combine("uploads", "invoices", fileName).Replace("\\", "/");
-            inventory.InvoiceAttachmentPath = relativePath;
             await _inventoryRepository.UpdateAsync(inventory);
-
-            return Ok(new { filePath = relativePath });
+            return Ok(results);
         }
         catch (Exception ex)
         {
             return StatusCode(500, $"Internal server error: {ex.Message}");
         }
+        
+    }
+    
+    [HttpGet("{inventoryId}/attachments")]
+    public async Task<ActionResult<IEnumerable<InventoryAttachmentDto>>> GetAttachments(int inventoryId)
+    {
+        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(inventoryId, "Attachments");
+        if (inventory == null)
+            return NotFound("Inventory not found");
+        
+        return Ok(_mapper.Map<IEnumerable<InventoryAttachmentDto>>(inventory.Attachments));
+    }
+    
+    [HttpGet("{inventoryId}/attachments/{attachmentId}/download")]
+    public async Task<IActionResult> DownloadAttachment(int inventoryId, int attachmentId)
+    {
+        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(inventoryId, "Attachments");
+        if (inventory == null)
+            return NotFound("Inventory not found");
+        
+        var attachment = inventory.Attachments.FirstOrDefault(a => a.Id == attachmentId);
+        if (attachment == null)
+            return NotFound("Attachment not found");
+        
+        var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", attachment.FilePath);
+        if (!System.IO.File.Exists(filePath))
+            return NotFound("Attachment file not found");
+        
+        var extension = Path.GetExtension(attachment.FileName).ToLowerInvariant();
+        var mimeType = GetMimeType(extension);
+    
+        var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
+        return new FileStreamResult(fileStream, mimeType)
+        {
+            FileDownloadName = attachment.FileName
+        };
     }
 
     [HttpGet("{inventoryId}/download-invoice")]
@@ -498,6 +770,38 @@ public class InventoryController : ControllerBase
             _ => "application/octet-stream"
         };
     }
+    
+    [HttpDelete("{inventoryId}/attachments/{attachmentId}")]
+    public async Task<IActionResult> DeleteAttachment(int inventoryId, int attachmentId)
+    {
+        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(inventoryId, "Attachments");
+        if (inventory == null)
+            return NotFound("Inventory not found");
+        
+        var attachment = inventory.Attachments.FirstOrDefault(a => a.Id == attachmentId);
+        if (attachment == null)
+            return NotFound("Attachment not found");
+    
+        try
+        {
+            // Delete the file from the file system
+            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", attachment.FilePath);
+            if (System.IO.File.Exists(filePath))
+            {
+                System.IO.File.Delete(filePath);
+            }
+        
+            // Remove the attachment from the inventory
+            inventory.Attachments.Remove(attachment);
+            await _inventoryRepository.UpdateAsync(inventory);
+        
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, $"Internal server error: {ex.Message}");
+        }
+    }
 
     [HttpGet("assigned")]
     [Authorize] 
@@ -505,7 +809,7 @@ public class InventoryController : ControllerBase
     {
         // Get the current user's ID from claims
         var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-    
+
         if (string.IsNullOrEmpty(currentUserId))
         {
             return Unauthorized("User ID not found in claims");
@@ -521,7 +825,11 @@ public class InventoryController : ControllerBase
             i => i.AssignedUserId == userId,
             "AssignedUser",
             "SupportCompany",
-            "InventoryHistory"
+            "InventoryHistory",
+            "Family",
+            "Type",
+            "Brand",
+            "Model"
         );
 
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
@@ -531,13 +839,13 @@ public class InventoryController : ControllerBase
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetWarrantyExpiringInventories(int days = 30)
     {
         var expiryDate = DateTime.Now.AddDays(days);
-        
-        var inventories =  await _inventoryRepository.SearchWithIncludesAsync(
-            i=> i.WarrantyEndDate.HasValue && 
-                i.WarrantyEndDate.Value <= expiryDate && 
-                i.WarrantyEndDate.Value >= DateTime.Now,
-            "AssignedUser", "SupportCompany");
-        
+    
+        var inventories = await _inventoryRepository.SearchWithIncludesAsync(
+            i => i.WarrantyEndDate.HasValue && 
+                 i.WarrantyEndDate.Value <= expiryDate && 
+                 i.WarrantyEndDate.Value >= DateTime.Now,
+            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
+    
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
 
@@ -547,22 +855,22 @@ public class InventoryController : ControllerBase
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
             i => i.WarrantyEndDate.HasValue && 
                  i.WarrantyEndDate.Value < DateTime.Now,
-            "AssignedUser", "SupportCompany");
-        
+            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
+    
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
-    
+
     [HttpGet("warranty-active")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetActiveWarrantyInventories()
     {
         var thirtyDaysFromNow = DateTime.Now.AddDays(30); // We consider warranties expiring in 30 days as "expiring soon"
-                                                                 // 30 gün sonra bitecek garanti süresini "yakında bitecek" olarak kabul ediyoruz
-    
+        // 30 gün sonra bitecek garanti süresini "yakında bitecek" olarak kabul ediyoruz
+
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
             i => i.WarrantyEndDate.HasValue && 
                  i.WarrantyEndDate.Value > thirtyDaysFromNow, // End date is more than 30 days away 
-            "AssignedUser", "SupportCompany");
-    
+            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
+
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
 
@@ -570,10 +878,49 @@ public class InventoryController : ControllerBase
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetInventoryByLocation(string location)
     {
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
-            i=> i.Location.ToLower() == location.ToLower(),
-            "AssignedUser","SupportCompany");
-        
+            i => i.Location.ToLower() == location.ToLower(),
+            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
+    
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
+    }
+    [HttpGet("families")]
+    public async Task<ActionResult<IEnumerable<object>>> GetFamilies()
+    {
+        var families = await _context.Families.Where(f => f.IsActive).Select(f => new { f.Id, f.Name }).ToListAsync();
+        return Ok(families);
+    }
+
+    [HttpGet("types")]
+    public async Task<ActionResult<IEnumerable<object>>> GetTypes()
+    {
+        var types = await _context.InventoryTypes.Where(t => t.IsActive).Select(t => new { t.Id, t.Name }).ToListAsync();
+        return Ok(types);
+    }
+
+    [HttpGet("brands")]
+    public async Task<ActionResult<IEnumerable<object>>> GetBrands()
+    {
+        var brands = await _context.Brands.Where(b => b.IsActive).Select(b => new { b.Id, b.Name }).ToListAsync();
+        return Ok(brands);
+    }
+
+    [HttpGet("models")]
+    public async Task<ActionResult<IEnumerable<object>>> GetModels()
+    {
+        var models = await _context.Models.Where(m => m.IsActive)
+            .Select(m => new { m.Id, m.Name, m.BrandId })
+            .ToListAsync();
+        return Ok(models);
+    }
+
+    [HttpGet("models/by-brand/{brandId}")]
+    public async Task<ActionResult<IEnumerable<object>>> GetModelsByBrand(int brandId)
+    {
+        var models = await _context.Models
+            .Where(m => m.BrandId == brandId && m.IsActive)
+            .Select(m => new { m.Id, m.Name })
+            .ToListAsync();
+        return Ok(models);
     }
     
     
