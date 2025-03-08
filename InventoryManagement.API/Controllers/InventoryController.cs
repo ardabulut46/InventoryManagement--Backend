@@ -214,14 +214,18 @@ public class InventoryController : ControllerBase
     //[Authorize(Policy = "CanView")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetInventories()
     {
-        var inventories = await _inventoryRepository.GetAllWithIncludesAsync(
+        var inventories = await _inventoryRepository.SearchWithIncludesAsync(
+            i=>i.IsActive,
             "AssignedUser",
+            "LastUser",
+            "CreatedUser",
             "SupportCompany",
             "InventoryHistory",
             "Family",
             "Type",
             "Brand",
-            "Model");
+            "Model",
+            "Attachments");
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
 
@@ -231,6 +235,8 @@ public class InventoryController : ControllerBase
         var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(
             id,
             "AssignedUser",
+            "LastUser",
+            "CreatedUser",
             "SupportCompany",
             "InventoryHistory",
             "Attachments",
@@ -239,7 +245,7 @@ public class InventoryController : ControllerBase
             "Brand",
             "Model");
 
-        if (inventory == null)
+        if (inventory == null || !inventory.IsActive)
             return NotFound();
 
         return Ok(_mapper.Map<InventoryDto>(inventory));
@@ -503,7 +509,19 @@ public class InventoryController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateInventory(int id, UpdateInventoryDto updateInventoryDto)
     {
-        var inventory = await _inventoryRepository.GetByIdAsync(id);
+        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(
+            id,
+            "AssignedUser",
+            "LastUser",
+            "CreatedUser",
+            "SupportCompany",
+            "InventoryHistory",
+            "Attachments",
+            "Family",
+            "Type",
+            "Brand",
+            "Model");
+
         if (inventory == null)
             return NotFound();
 
@@ -532,11 +550,38 @@ public class InventoryController : ControllerBase
             return BadRequest($"Model with ID {updateInventoryDto.ModelId} does not exist.");
         }
 
+        // Check if assigned user exists if provided
+        if (updateInventoryDto.AssignedUserId.HasValue)
+        {
+            var userExists = await _userRepository.GetByIdAsync(updateInventoryDto.AssignedUserId.Value);
+            if (userExists == null)
+            {
+                return BadRequest($"User with ID {updateInventoryDto.AssignedUserId.Value} does not exist.");
+            }
+
+            // If the assigned user is changing, update the LastUserId
+            if (inventory.AssignedUserId != updateInventoryDto.AssignedUserId)
+            {
+                inventory.LastUserId = inventory.AssignedUserId;
+            }
+        }
+
+        // Check if support company exists if provided
+        if (updateInventoryDto.SupportCompanyId.HasValue)
+        {
+            var companyExists =
+                await _context.Companies.AnyAsync(c => c.Id == updateInventoryDto.SupportCompanyId.Value);
+            if (!companyExists)
+            {
+                return BadRequest($"Company with ID {updateInventoryDto.SupportCompanyId.Value} does not exist.");
+            }
+        }
+
         _mapper.Map(updateInventoryDto, inventory);
         await _inventoryRepository.UpdateAsync(inventory);
         return NoContent();
     }
-
+    
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteInventory(int id)
     {
@@ -544,7 +589,8 @@ public class InventoryController : ControllerBase
         if (inventory == null)
             return NotFound();
 
-        await _inventoryRepository.DeleteAsync(id);
+        inventory.IsActive = false;
+        await _inventoryRepository.UpdateAsync(inventory);
         return NoContent();
     }
 
@@ -558,8 +604,11 @@ public class InventoryController : ControllerBase
         [FromQuery] int? brandId,
         [FromQuery] int? modelId)
     {
-        var inventories = await _inventoryRepository.GetAllWithIncludesAsync(
+        var inventories = await _inventoryRepository.SearchWithIncludesAsync(
+            i=>i.IsActive,
             "AssignedUser",
+            "LastUser",
+            "CreatedUser",
             "SupportCompany",
             "Family",
             "Type",
@@ -577,7 +626,12 @@ public class InventoryController : ControllerBase
                 (i.Type != null && i.Type.Name.Contains(searchTerm)) ||
                 (i.Brand != null && i.Brand.Name.Contains(searchTerm)) ||
                 (i.Model != null && i.Model.Name.Contains(searchTerm)) ||
-                i.Location.Contains(searchTerm));
+                i.Location.Contains(searchTerm) ||
+                i.Room.Contains(searchTerm) ||
+                i.Floor.Contains(searchTerm) ||
+                i.Block.Contains(searchTerm) ||
+                i.Department.Contains(searchTerm) ||
+                i.Supplier.Contains(searchTerm));
         }
 
         if (!string.IsNullOrWhiteSpace(status))
@@ -822,14 +876,17 @@ public class InventoryController : ControllerBase
         }
 
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
-            i => i.AssignedUserId == userId,
+            i => i.AssignedUserId == userId && i.IsActive,
             "AssignedUser",
+            "LastUser",
+            "CreatedUser",
             "SupportCompany",
             "InventoryHistory",
             "Family",
             "Type",
             "Brand",
-            "Model"
+            "Model",
+            "Attachments"
         );
 
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
@@ -839,13 +896,14 @@ public class InventoryController : ControllerBase
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetWarrantyExpiringInventories(int days = 30)
     {
         var expiryDate = DateTime.Now.AddDays(days);
-    
+
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
-            i => i.WarrantyEndDate.HasValue && 
+            i => i.IsActive && i.WarrantyEndDate.HasValue && 
                  i.WarrantyEndDate.Value <= expiryDate && 
                  i.WarrantyEndDate.Value >= DateTime.Now,
-            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
-    
+            "AssignedUser", "LastUser", "CreatedUser", "SupportCompany", 
+            "Family", "Type", "Brand", "Model", "Attachments");
+
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
 
@@ -853,23 +911,24 @@ public class InventoryController : ControllerBase
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetWarrantyExpiredInventories()
     {
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
-            i => i.WarrantyEndDate.HasValue && 
+            i => i.IsActive && i.WarrantyEndDate.HasValue && 
                  i.WarrantyEndDate.Value < DateTime.Now,
-            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
-    
+            "AssignedUser", "LastUser", "CreatedUser", "SupportCompany", 
+            "Family", "Type", "Brand", "Model", "Attachments");
+
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
 
     [HttpGet("warranty-active")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetActiveWarrantyInventories()
     {
-        var thirtyDaysFromNow = DateTime.Now.AddDays(30); // We consider warranties expiring in 30 days as "expiring soon"
-        // 30 gün sonra bitecek garanti süresini "yakında bitecek" olarak kabul ediyoruz
+        var thirtyDaysFromNow = DateTime.Now.AddDays(30);
 
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
-            i => i.WarrantyEndDate.HasValue && 
-                 i.WarrantyEndDate.Value > thirtyDaysFromNow, // End date is more than 30 days away 
-            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
+            i => i.IsActive && i.WarrantyEndDate.HasValue && 
+                 i.WarrantyEndDate.Value > thirtyDaysFromNow,
+            "AssignedUser", "LastUser", "CreatedUser", "SupportCompany", 
+            "Family", "Type", "Brand", "Model", "Attachments");
 
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
@@ -878,11 +937,13 @@ public class InventoryController : ControllerBase
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetInventoryByLocation(string location)
     {
         var inventories = await _inventoryRepository.SearchWithIncludesAsync(
-            i => i.Location.ToLower() == location.ToLower(),
-            "AssignedUser", "SupportCompany", "Family", "Type", "Brand", "Model");
-    
+            i => i.IsActive && i.Location.ToLower() == location.ToLower(),
+            "AssignedUser", "LastUser", "CreatedUser", "SupportCompany", 
+            "Family", "Type", "Brand", "Model", "Attachments");
+
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
+    
     [HttpGet("families")]
     public async Task<ActionResult<IEnumerable<object>>> GetFamilies()
     {
