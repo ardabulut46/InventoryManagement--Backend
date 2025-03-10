@@ -669,8 +669,9 @@ public class InventoryController : ControllerBase
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(filteredInventories.ToList()));
     }
 
+    
     [HttpPost("{inventoryId}/upload-invoice")]
-    [Authorize]
+    [Authorize(Policy = "Inventory:Create")]
     public async Task<IActionResult> UploadAttachments(int inventoryId, [FromForm] List<IFormFile> files,
         [FromForm] string description = "")
     {

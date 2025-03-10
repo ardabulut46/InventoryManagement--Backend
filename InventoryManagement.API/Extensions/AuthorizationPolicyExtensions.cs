@@ -29,6 +29,8 @@ namespace InventoryManagement.API.Extensions
                     policy.RequireClaim("Permission", Permissions.Inventory.Edit));
                 options.AddPolicy(Permissions.Inventory.Delete, policy =>
                     policy.RequireClaim("Permission", Permissions.Inventory.Delete));
+                options.AddPolicy(Permissions.Inventory.UploadInvoice, policy =>
+                    policy.RequireClaim("Permission", Permissions.Inventory.UploadInvoice));
                 
                 // User Policies
                 options.AddPolicy(Permissions.Users.View, policy =>
@@ -51,6 +53,16 @@ namespace InventoryManagement.API.Extensions
                     policy.RequireClaim("Permission", Permissions.Tickets.Delete));
                 options.AddPolicy(Permissions.Tickets.Assign, policy =>
                     policy.RequireClaim("Permission", Permissions.Tickets.Assign));
+                // Role Policies
+                options.AddPolicy(Permissions.Roles.View, policy =>
+                    policy.RequireClaim("Permission", Permissions.Roles.View));
+                options.AddPolicy(Permissions.Roles.Create, policy =>
+                    policy.RequireClaim("Permission", Permissions.Roles.Create));
+                options.AddPolicy(Permissions.Roles.Delete, policy =>
+                    policy.RequireClaim("Permission", Permissions.Roles.Delete));
+                options.AddPolicy(Permissions.Roles.Edit, policy =>
+                    policy.RequireClaim("Permission", Permissions.Roles.Edit));
+                
                 
                 // Role-based composite policies
                 options.AddPolicy(Policies.InventoryManager, policy =>

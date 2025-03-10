@@ -29,6 +29,25 @@ namespace InventoryManagement.Infrastructure.Repositories
                 .Include(u => u.Group)
                 .FirstOrDefaultAsync(u => u.Id == id);
         }
+        public async Task<IEnumerable<User>> GetAllWithRolesAsync()
+        {
+            var users = await _context.Users
+                .Include(u => u.Department)
+                .Include(u => u.Group)
+                .ToListAsync();
+        
+            return users;
+        }
+
+        public async Task<User> GetByIdWithRolesAsync(int id)
+        {
+            var user = await _context.Users
+                .Include(u => u.Department)
+                .Include(u => u.Group)
+                .FirstOrDefaultAsync(u => u.Id == id);
+        
+            return user;
+        }
 
         public async Task<User?> GetByUsernameAsync(string username)
         {

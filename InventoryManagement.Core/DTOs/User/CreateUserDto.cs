@@ -25,19 +25,14 @@ public class CreateUserDto
     [Required]
     [StringLength(100, MinimumLength = 6)]
     public string Password { get; set; }
-
-    public string Role { get; set; } = "";
+    
     public string? Floor { get; set; }
     public string? Room { get; set; }
 
     public string? City { get; set; }
     public string? District { get; set; }
     public string? Address { get; set; }
-    public bool CanView { get; set; }
-    public bool CanCreate { get; set; }
-    public bool CanEdit { get; set; }
-    public bool CanDelete { get; set; }
-    
+    public int RoleId { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

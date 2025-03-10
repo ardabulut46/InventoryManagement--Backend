@@ -5,6 +5,8 @@ namespace InventoryManagement.Core.Interfaces;
 
 public interface IUserRepository
 {
+    Task<IEnumerable<User>> GetAllWithRolesAsync();
+    Task<User> GetByIdWithRolesAsync(int id);
     Task<IEnumerable<User>> GetAllAsync();
     Task<User> GetByIdAsync(int id);
     Task<User> GetByUsernameAsync(string username);

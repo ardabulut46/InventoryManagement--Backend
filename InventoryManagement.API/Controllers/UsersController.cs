@@ -56,7 +56,44 @@ namespace InventoryManagement.API.Controllers
         public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
             var users = await _userRepository.GetAllAsync();
-            return Ok(_mapper.Map<IEnumerable<UserDto>>(users));
+            var userDtos = new List<UserDto>();
+
+            foreach (var user in users)
+            {
+                var userDto = _mapper.Map<UserDto>(user);
+
+                // Ensure Group properties are set correctly
+                if (user.Group != null)
+                {
+                    userDto.GroupId = user.GroupId;
+                    userDto.GroupName = user.Group.Name; // Assuming Group has a Name property
+                }
+
+                // Get user roles
+                var roles = await _userManager.GetRolesAsync(user);
+                if (roles.Any())
+                {
+                    userDto.Role = roles.First(); // Assuming a user has one primary role
+
+                    // Get role details
+                    var role = await _roleManager.FindByNameAsync(userDto.Role);
+                    if (role != null)
+                    {
+                        userDto.RoleId = role.Id;
+
+                        // Get role permissions
+                        var rolePermissions = await _context.RolePermissions
+                            .Where(rp => rp.RoleId == role.Id)
+                            .ToListAsync();
+
+                        userDto.RolePermissions = rolePermissions.Select(rp => rp.Permission).ToList();
+                    }
+                }
+
+                userDtos.Add(userDto);
+            }
+
+            return Ok(userDtos);
         }
 
         [HttpGet("{id}")]
@@ -66,7 +103,37 @@ namespace InventoryManagement.API.Controllers
             if (user == null)
                 return NotFound();
 
-            return Ok(_mapper.Map<UserDto>(user));
+            var userDto = _mapper.Map<UserDto>(user);
+
+            // Ensure Group properties are set correctly
+            if (user.Group != null)
+            {
+                userDto.GroupId = user.GroupId;
+                userDto.GroupName = user.Group.Name; // Assuming Group has a Name property
+            }
+
+            // Get user roles
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Any())
+            {
+                userDto.Role = roles.First(); // Assuming a user has one primary role
+
+                // Get role details
+                var role = await _roleManager.FindByNameAsync(userDto.Role);
+                if (role != null)
+                {
+                    userDto.RoleId = role.Id;
+
+                    // Get role permissions
+                    var rolePermissions = await _context.RolePermissions
+                        .Where(rp => rp.RoleId == role.Id)
+                        .ToListAsync();
+
+                    userDto.RolePermissions = rolePermissions.Select(rp => rp.Permission).ToList();
+                }
+            }
+
+            return Ok(userDto);
         }
 
 
@@ -83,12 +150,9 @@ namespace InventoryManagement.API.Controllers
                 return BadRequest("Geçersiz grup");
 
             // Verify the role exists
-            if (!string.IsNullOrEmpty(createUserDto.Role))
-            {
-                var roleExists = await _roleManager.RoleExistsAsync(createUserDto.Role);
-                if (!roleExists)
-                    return BadRequest($"Rol '{createUserDto.Role}' bulunamadı");
-            }
+            var role = await _roleManager.FindByIdAsync(createUserDto.RoleId.ToString());
+            if (role == null)
+                return BadRequest($"Rol ID '{createUserDto.RoleId}' bulunamadı");
 
             var user = _mapper.Map<User>(createUserDto);
             user.UserName = createUserDto.Email;
@@ -100,62 +164,30 @@ namespace InventoryManagement.API.Controllers
             if (!result.Succeeded)
                 return BadRequest(result.Errors);
 
-            // Assign the user to the specified role
-            if (!string.IsNullOrEmpty(createUserDto.Role))
-            {
-                var roleResult = await _userManager.AddToRoleAsync(user, createUserDto.Role);
-                if (!roleResult.Succeeded)
-                    return BadRequest(roleResult.Errors);
-            }
-
-            // Create basic permission for backward compatibility
-            var permission = new Permission
-            {
-                UserId = user.Id,
-                CanView = createUserDto.CanView,
-                CanCreate = createUserDto.CanCreate,
-                CanEdit = createUserDto.CanEdit,
-                CanDelete = createUserDto.CanDelete
-            };
-
-            await _permissionRepository.AddAsync(permission);
+            // Assign the user to the role
+            var roleResult = await _userManager.AddToRoleAsync(user, role.Name);
+            if (!roleResult.Succeeded)
+                return BadRequest(roleResult.Errors);
 
             // Get user with permissions for response
             var userWithPermissions = await _userManager.FindByIdAsync(user.Id.ToString());
             var userDto = _mapper.Map<UserDto>(userWithPermissions);
 
-            // Add basic permissions to response
-            userDto.Permissions = new PermissionDto
-            {
-                CanView = permission.CanView,
-                CanCreate = permission.CanCreate,
-                CanEdit = permission.CanEdit,
-                CanDelete = permission.CanDelete
-            };
-
             // Include role information in the response
-            if (!string.IsNullOrEmpty(createUserDto.Role))
-            {
-                // Get role details to include permissions in the response
-                var role = await _roleManager.FindByNameAsync(createUserDto.Role);
-                if (role != null)
-                {
-                    var rolePermissions = await _context.RolePermissions
-                        .Where(rp => rp.RoleId == role.Id)
-                        .Select(rp => rp.Permission)
-                        .ToListAsync();
+            var rolePermissions = await _context.RolePermissions
+                .Where(rp => rp.RoleId == role.Id)
+                .Select(rp => rp.Permission)
+                .ToListAsync();
 
-                    userDto.Role = createUserDto.Role;
-                    userDto.RolePermissions = rolePermissions;
-                }
-            }
+            userDto.Role = role.Name;
+            userDto.RoleId = role.Id;
+            userDto.RolePermissions = rolePermissions;
 
             return CreatedAtAction(nameof(GetUser),
                 new { id = user.Id },
                 userDto);
         }
-
-
+        
         [HttpPost("change-password")]
         [Authorize]  // sadece giriş yapmış kullanıcılar şifre değiştirebilir
         public async Task<IActionResult> ChangePassword(ChangePasswordDto changePasswordDto)
@@ -187,8 +219,73 @@ namespace InventoryManagement.API.Controllers
             if (user == null)
                 return NotFound();
 
-            _mapper.Map(updateUserDto, user);
-            await _userRepository.UpdateAsync(user);
+            // Check if email is already in use by another user
+            var existingUser = await _userManager.FindByEmailAsync(updateUserDto.Email);
+            if (existingUser != null && existingUser.Id != id)
+                return BadRequest("Email zaten kullanımda");
+
+            // Get the group if provided
+            if (updateUserDto.GroupId.HasValue)
+            {
+                var group = await _groupRepository.GetByIdAsync(updateUserDto.GroupId.Value);
+                if (group == null)
+                    return BadRequest("Geçersiz grup");
+
+                user.GroupId = group.Id;
+                user.DepartmentId = group.DepartmentId;
+            }
+
+            // Verify the role exists
+            var role = await _roleManager.FindByIdAsync(updateUserDto.RoleId.ToString());
+            if (role == null)
+                return BadRequest($"Rol ID '{updateUserDto.RoleId}' bulunamadı");
+
+            // Get current roles
+            var currentRoles = await _userManager.GetRolesAsync(user);
+
+            // Remove from current roles
+            if (currentRoles.Any())
+            {
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            }
+
+            // Add to new role
+            var roleResult = await _userManager.AddToRoleAsync(user, role.Name);
+            if (!roleResult.Succeeded)
+                return BadRequest(roleResult.Errors);
+
+            // Update basic user properties
+            user.Name = updateUserDto.Name;
+            user.Surname = updateUserDto.Surname;
+            user.Email = updateUserDto.Email;
+            user.UserName = updateUserDto.Email; // Keep username in sync with email
+            user.Location = updateUserDto.Location;
+            user.Floor = updateUserDto.Floor;
+            user.Room = updateUserDto.Room;
+            user.City = updateUserDto.City;
+            user.District = updateUserDto.District;
+            user.Address = updateUserDto.Address;
+            user.IsActive = updateUserDto.IsActive;
+
+            // Handle password update if provided
+            if (!string.IsNullOrEmpty(updateUserDto.Password))
+            {
+                // Remove current password
+                var removePasswordResult = await _userManager.RemovePasswordAsync(user);
+                if (!removePasswordResult.Succeeded)
+                    return BadRequest(removePasswordResult.Errors);
+
+                // Add new password
+                var addPasswordResult = await _userManager.AddPasswordAsync(user, updateUserDto.Password);
+                if (!addPasswordResult.Succeeded)
+                    return BadRequest(addPasswordResult.Errors);
+            }
+
+            // Update the user
+            var updateResult = await _userManager.UpdateAsync(user);
+            if (!updateResult.Succeeded)
+                return BadRequest(updateResult.Errors);
+
             return NoContent();
         }
 

@@ -27,9 +27,7 @@ public class MappingProfile : Profile
     {
         CreateMap<User, UserDto>()
             .ForMember(dest => dest.Department,
-                opt => opt.MapFrom(src => src.Department))
-            .ForMember(dest => dest.Group,
-                opt => opt.MapFrom(src => src.Group != null ? src.Group.Name : null));
+                opt => opt.MapFrom(src => src.Department));
         CreateMap<CreateUserDto, User>();
         CreateMap<UpdateUserDto, User>();
         CreateMap<Department, DepartmentDto>();

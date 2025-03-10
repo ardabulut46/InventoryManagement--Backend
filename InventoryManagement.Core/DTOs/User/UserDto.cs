@@ -15,10 +15,13 @@ public class UserDto
     public string? Address { get; set; }
     public string? Floor { get; set; }
     public string? Room { get; set; }
-    public string? Group { get; set; }
+    
+    public int? GroupId { get; set; }
+    public string? GroupName { get; set; }
     public PermissionDto Permissions { get; set; }
     public string Role { get; set; }
     public IEnumerable<string> RolePermissions { get; set; } = new List<string>();
+    public int RoleId { get; set; }
     public DepartmentDto Department { get; set; }
     public bool IsActive { get; set; }
     public DateTime CreatedDate { get; set; }

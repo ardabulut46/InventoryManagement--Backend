@@ -15,6 +15,7 @@ public static class Permissions
         public const string Create = "Inventory:Create";
         public const string Edit = "Inventory:Edit";
         public const string Delete = "Inventory:Delete";
+        public const string UploadInvoice = "Inventory:UploadFile";
     }
         
     // User Permissions
@@ -34,6 +35,14 @@ public static class Permissions
         public const string Edit = "Tickets:Edit";
         public const string Delete = "Tickets:Delete";
         public const string Assign = "Tickets:Assign";
+    }
+    //Role permissions
+    public static class Roles
+    {
+        public const string View = "Roles:View";
+        public const string Create = "Roles:Create";
+        public const string Edit = "Roles:Edit";
+        public const string Delete = "Roles:Delete";
     }
 }
     
