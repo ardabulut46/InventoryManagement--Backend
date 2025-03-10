@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using OfficeOpenXml;
 using System.ComponentModel.DataAnnotations;
 using InventoryManagement.Core.DTOs.InventoryAttachment;
+using InventoryManagement.Core.Enums;
 using InventoryManagement.Infrastructure.Repositories;
 
 namespace InventoryManagement.API.Controllers
@@ -38,20 +39,20 @@ public class InventoryController : ControllerBase
     }
 
 
-    /*
     [HttpGet("export-template")]
     public IActionResult DownloadExcelTemplate()
     {
         using var package = new ExcelPackage();
-        var worksheet = package.Workbook.Worksheets.Add("Inventory Template");
+        var worksheet = package.Workbook.Worksheets.Add("Envanter Şablonu");
 
-        // Add headers with required fields marked with asterisk
+        // Add headers with required fields marked with asterisk (Turkish headers)
+        // Removed location-related fields as they'll be populated from the user
         var headers = new[]
         {
-            "Barcode*", "Serial Number*", "Family*", "Type*", "Brand*", "Model*",
-            "Location", "Status", "Room", "Floor", "Block", "Department",
-            "Purchase Date", "Warranty Start Date", "Warranty End Date", "Supplier",
-            "Assigned User Email", "Support Company ID"
+            "Barkod*", "Seri Numarası*", "Aile*", "Tip*", "Marka*", "Model*",
+            "Durum", "Satın Alma Tarihi", "Satın Alma Fiyatı", "Para Birimi",
+            "Garanti Başlangıç Tarihi", "Garanti Bitiş Tarihi", "Tedarikçi",
+            "Atanan Kullanıcı Email", "Destek Şirketi ID"
         };
 
         for (int i = 0; i < headers.Length; i++)
@@ -61,30 +62,44 @@ public class InventoryController : ControllerBase
         }
 
         // Add example data
-        worksheet.Cells[2, 1].Value = "123456789";
+        worksheet.Cells[2, 1].Value = "BRKDS123";
         worksheet.Cells[2, 2].Value = "SN123456";
-        worksheet.Cells[2, 3].Value = "Laptop";
-        worksheet.Cells[2, 4].Value = "Computer";
-        worksheet.Cells[2, 5].Value = "Dell";
-        worksheet.Cells[2, 6].Value = "Latitude 5420";
-        worksheet.Cells[2, 7].Value = "Head Office";
-        worksheet.Cells[2, 8].Value = "Active";
-        worksheet.Cells[2, 9].Value = "Room 101";
-        worksheet.Cells[2, 10].Value = "1st Floor";
-        worksheet.Cells[2, 11].Value = "Block A";
-        worksheet.Cells[2, 12].Value = "IT Department";
-        worksheet.Cells[2, 13].Value = DateTime.Now.ToString("yyyy-MM-dd");
-        worksheet.Cells[2, 14].Value = DateTime.Now.ToString("yyyy-MM-dd");
-        worksheet.Cells[2, 15].Value = DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
-        worksheet.Cells[2, 16].Value = "Supplier Name";
-        worksheet.Cells[2, 17].Value = "user@example.com"; // Example user email
-        worksheet.Cells[2, 18].Value = "1"; // Example SupportCompanyId
+        worksheet.Cells[2, 3].Value = "Bilgisayar"; // Family name instead of ID
+        worksheet.Cells[2, 4].Value = "Dizüstü"; // Type name instead of ID
+        worksheet.Cells[2, 5].Value = "Dell"; // Brand name instead of ID
+        worksheet.Cells[2, 6].Value = "Latitude 5420"; // Model name instead of ID
+        worksheet.Cells[2, 7].Value = "Aktif";
+        worksheet.Cells[2, 8].Value = DateTime.Now.ToString("yyyy-MM-dd");
+        worksheet.Cells[2, 9].Value = "5000";
+        worksheet.Cells[2, 10].Value = "TRY"; // PurchaseCurrency
+        worksheet.Cells[2, 11].Value = DateTime.Now.ToString("yyyy-MM-dd");
+        worksheet.Cells[2, 12].Value = DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
+        worksheet.Cells[2, 13].Value = "Tedarikçi Adı";
+        worksheet.Cells[2, 14].Value = "kullanici@ornek.com"; // Example user email
+        worksheet.Cells[2, 15].Value = "1"; // Example SupportCompanyId
+
+        // Add a second example row to show multiple entries
+        worksheet.Cells[3, 1].Value = "BRKDASF324";
+        worksheet.Cells[3, 2].Value = "SN654321";
+        worksheet.Cells[3, 3].Value = "Monitör"; // Family name instead of ID
+        worksheet.Cells[3, 4].Value = "LCD"; // Type name instead of ID
+        worksheet.Cells[3, 5].Value = "HP"; // Brand name instead of ID
+        worksheet.Cells[3, 6].Value = "EliteDisplay E243"; // Model name instead of ID
+        worksheet.Cells[3, 7].Value = "Aktif";
+        worksheet.Cells[3, 8].Value = DateTime.Now.ToString("yyyy-MM-dd");
+        worksheet.Cells[3, 9].Value = "7500";
+        worksheet.Cells[3, 10].Value = "TRY"; // PurchaseCurrency
+        worksheet.Cells[3, 11].Value = DateTime.Now.ToString("yyyy-MM-dd");
+        worksheet.Cells[3, 12].Value = DateTime.Now.AddYears(1).ToString("yyyy-MM-dd");
+        worksheet.Cells[3, 13].Value = "Tedarikçi Adı";
+        worksheet.Cells[3, 14].Value = "kullanici2@ornek.com"; // Example user email
+        worksheet.Cells[3, 15].Value = "2"; // Example SupportCompanyId
 
         // Add date format to date columns
         var dateStyle = "yyyy-mm-dd";
-        worksheet.Cells[1, 13, worksheet.Dimension.End.Row, 13].Style.Numberformat.Format = dateStyle;
-        worksheet.Cells[1, 14, worksheet.Dimension.End.Row, 14].Style.Numberformat.Format = dateStyle;
-        worksheet.Cells[1, 15, worksheet.Dimension.End.Row, 15].Style.Numberformat.Format = dateStyle;
+        worksheet.Cells[1, 8, worksheet.Dimension.End.Row, 8].Style.Numberformat.Format = dateStyle;
+        worksheet.Cells[1, 11, worksheet.Dimension.End.Row, 11].Style.Numberformat.Format = dateStyle;
+        worksheet.Cells[1, 12, worksheet.Dimension.End.Row, 12].Style.Numberformat.Format = dateStyle;
 
         worksheet.Cells.AutoFitColumns();
 
@@ -92,27 +107,40 @@ public class InventoryController : ControllerBase
         return File(
             content,
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "inventory_template.xlsx");
+            "envanter_sablonu.xlsx");
     }
 
     [HttpPost("import-excel")]
-    [Authorize(Policy = "CanCreate")]
+    [Authorize]
     public async Task<IActionResult> ImportFromExcel(IFormFile file)
     {
         if (file == null || file.Length == 0)
-            return BadRequest("No file uploaded");
+            return BadRequest("Dosya yüklenmedi");
 
         if (!Path.GetExtension(file.FileName).Equals(".xlsx", StringComparison.OrdinalIgnoreCase))
-            return BadRequest("Please upload an Excel file (.xlsx)");
+            return BadRequest("Lütfen bir Excel dosyası (.xlsx) yükleyin");
 
         var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!int.TryParse(currentUserId, out int userId))
         {
-            return Unauthorized("Invalid user ID");
+            return Unauthorized("Geçersiz kullanıcı ID");
+        }
+
+        // Get the current user to populate location-related fields
+        var currentUser = await _userRepository.GetByIdAsync(userId);
+        if (currentUser == null)
+        {
+            return NotFound("Kullanıcı bulunamadı");
         }
 
         try
         {
+            // Load all families, types, brands, and models for name-to-id mapping
+            var allFamilies = await _context.Families.Where(f => f.IsActive).ToListAsync();
+            var allTypes = await _context.InventoryTypes.Where(t => t.IsActive).ToListAsync();
+            var allBrands = await _context.Brands.Where(b => b.IsActive).ToListAsync();
+            var allModels = await _context.Models.Where(m => m.IsActive).Include(m => m.Brand).ToListAsync();
+
             using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
 
@@ -126,51 +154,158 @@ public class InventoryController : ControllerBase
             // Start from row 2 (assuming row 1 is header)
             for (int row = 2; row <= rowCount; row++)
             {
+                // Skip empty rows
+                if (worksheet.Cells[row, 1].Value == null && worksheet.Cells[row, 2].Value == null)
+                    continue;
+
                 try
                 {
                     var inventoryDto = new CreateInventoryDto
                     {
                         Barcode = worksheet.Cells[row, 1].Value?.ToString(),
                         SerialNumber = worksheet.Cells[row, 2].Value?.ToString(),
-                        Family = worksheet.Cells[row, 3].Value?.ToString(),
-                        Type = worksheet.Cells[row, 4].Value?.ToString(),
-                        Brand = worksheet.Cells[row, 5].Value?.ToString(),
-                        Model = worksheet.Cells[row, 6].Value?.ToString(),
-                        Location = worksheet.Cells[row, 7].Value?.ToString(),
-                        Status = worksheet.Cells[row, 8].Value?.ToString(),
-                        Room = worksheet.Cells[row, 9].Value?.ToString(),
-                        Floor = worksheet.Cells[row, 10].Value?.ToString(),
-                        Block = worksheet.Cells[row, 11].Value?.ToString(),
-                        Department = worksheet.Cells[row, 12].Value?.ToString(),
-                        CreatedUserId = userId
+                        CreatedUserId = userId,
+                        // Set location information from the current user
+                        Location = currentUser.Location,
+                        Department = currentUser.Department.ToString(),
+                        Room = currentUser.Room,
+                        Floor = currentUser.Floor
+                        // Block field has been removed
                     };
 
-                    // Handle dates
-                    if (DateTime.TryParse(worksheet.Cells[row, 13].Value?.ToString(), out DateTime purchaseDate))
+                    // Handle Family by name
+                    var familyName = worksheet.Cells[row, 3].Value?.ToString();
+                    if (!string.IsNullOrEmpty(familyName))
+                    {
+                        var family = allFamilies.FirstOrDefault(f =>
+                            f.Name.Equals(familyName, StringComparison.OrdinalIgnoreCase));
+                        if (family == null)
+                        {
+                            errors.Add($"Satır {row}: '{familyName}' adında bir aile bulunamadı");
+                            continue;
+                        }
+
+                        inventoryDto.FamilyId = family.Id;
+                    }
+                    else
+                    {
+                        errors.Add($"Satır {row}: Aile adı boş olamaz");
+                        continue;
+                    }
+
+                    // Handle Type by name
+                    var typeName = worksheet.Cells[row, 4].Value?.ToString();
+                    if (!string.IsNullOrEmpty(typeName))
+                    {
+                        var type = allTypes.FirstOrDefault(t =>
+                            t.Name.Equals(typeName, StringComparison.OrdinalIgnoreCase));
+                        if (type == null)
+                        {
+                            errors.Add($"Satır {row}: '{typeName}' adında bir tip bulunamadı");
+                            continue;
+                        }
+
+                        inventoryDto.TypeId = type.Id;
+                    }
+                    else
+                    {
+                        errors.Add($"Satır {row}: Tip adı boş olamaz");
+                        continue;
+                    }
+
+                    // Handle Brand by name
+                    var brandName = worksheet.Cells[row, 5].Value?.ToString();
+                    if (!string.IsNullOrEmpty(brandName))
+                    {
+                        var brand = allBrands.FirstOrDefault(b =>
+                            b.Name.Equals(brandName, StringComparison.OrdinalIgnoreCase));
+                        if (brand == null)
+                        {
+                            errors.Add($"Satır {row}: '{brandName}' adında bir marka bulunamadı");
+                            continue;
+                        }
+
+                        inventoryDto.BrandId = brand.Id;
+                    }
+                    else
+                    {
+                        errors.Add($"Satır {row}: Marka adı boş olamaz");
+                        continue;
+                    }
+
+                    // Handle Model by name (and ensure it belongs to the selected brand)
+                    var modelName = worksheet.Cells[row, 6].Value?.ToString();
+                    if (!string.IsNullOrEmpty(modelName))
+                    {
+                        var model = allModels.FirstOrDefault(m =>
+                            m.Name.Equals(modelName, StringComparison.OrdinalIgnoreCase) &&
+                            m.BrandId == inventoryDto.BrandId);
+
+                        if (model == null)
+                        {
+                            // Try to find any model with this name, regardless of brand
+                            var anyModel = allModels.FirstOrDefault(m =>
+                                m.Name.Equals(modelName, StringComparison.OrdinalIgnoreCase));
+                            if (anyModel != null)
+                            {
+                                errors.Add(
+                                    $"Satır {row}: '{modelName}' modeli seçilen '{brandName}' markasına ait değil");
+                            }
+                            else
+                            {
+                                errors.Add($"Satır {row}: '{modelName}' adında bir model bulunamadı");
+                            }
+
+                            continue;
+                        }
+
+                        inventoryDto.ModelId = model.Id;
+                    }
+                    else
+                    {
+                        errors.Add($"Satır {row}: Model adı boş olamaz");
+                        continue;
+                    }
+
+                    // Status field (now at column 7)
+                    inventoryDto.Status = worksheet.Cells[row, 7].Value?.ToString() ?? "Aktif";
+
+                    // Handle dates and numeric values (adjusted column indices)
+                    if (DateTime.TryParse(worksheet.Cells[row, 8].Value?.ToString(), out DateTime purchaseDate))
                         inventoryDto.PurchaseDate = purchaseDate;
 
-                    if (DateTime.TryParse(worksheet.Cells[row, 14].Value?.ToString(), out DateTime warrantyStart))
+                    if (int.TryParse(worksheet.Cells[row, 9].Value?.ToString(), out int purchasePrice))
+                        inventoryDto.PurchasePrice = purchasePrice;
+
+                    // Handle currency enum
+                    var currencyStr = worksheet.Cells[row, 10].Value?.ToString();
+                    if (!string.IsNullOrEmpty(currencyStr) &&
+                        Enum.TryParse<PurchaseCurrency>(currencyStr, out var currency))
+                        inventoryDto.PurchaseCurrency = currency;
+
+                    if (DateTime.TryParse(worksheet.Cells[row, 11].Value?.ToString(), out DateTime warrantyStart))
                         inventoryDto.WarrantyStartDate = warrantyStart;
 
-                    if (DateTime.TryParse(worksheet.Cells[row, 15].Value?.ToString(), out DateTime warrantyEnd))
+                    if (DateTime.TryParse(worksheet.Cells[row, 12].Value?.ToString(), out DateTime warrantyEnd))
                         inventoryDto.WarrantyEndDate = warrantyEnd;
 
-                    inventoryDto.Supplier = worksheet.Cells[row, 16].Value?.ToString();
+                    inventoryDto.Supplier = worksheet.Cells[row, 13].Value?.ToString();
 
-                    // Handle IDs
-                     var userEmail = worksheet.Cells[row, 17].Value?.ToString();
-                     if (!string.IsNullOrEmpty(userEmail))
-                     {
-                         var user = await _userRepository.GetByEmailAsync(userEmail);
-                         if (user == null)
-                         {
-                             errors.Add("$Row {row}: User with email {userEmail} not found");
-                             continue;
-                         }
-                         inventoryDto.AssignedUserId = user.Id;
-                     }
+                    // Handle user assignment by email
+                    var userEmail = worksheet.Cells[row, 14].Value?.ToString();
+                    if (!string.IsNullOrEmpty(userEmail))
+                    {
+                        var user = await _userRepository.GetByEmailAsync(userEmail);
+                        if (user == null)
+                        {
+                            errors.Add($"Satır {row}: {userEmail} e-postasına sahip kullanıcı bulunamadı");
+                            continue;
+                        }
 
-                     if (int.TryParse(worksheet.Cells[row, 18].Value?.ToString(), out int supportCompanyId))
+                        inventoryDto.AssignedUserId = user.Id;
+                    }
+
+                    if (int.TryParse(worksheet.Cells[row, 15].Value?.ToString(), out int supportCompanyId))
                         inventoryDto.SupportCompanyId = supportCompanyId;
 
                     // Validate the DTO
@@ -178,7 +313,7 @@ public class InventoryController : ControllerBase
                     var validationResults = new List<ValidationResult>();
                     if (!Validator.TryValidateObject(inventoryDto, validationContext, validationResults, true))
                     {
-                        errors.Add($"Row {row}: {string.Join(", ", validationResults.Select(x => x.ErrorMessage))}");
+                        errors.Add($"Satır {row}: {string.Join(", ", validationResults.Select(x => x.ErrorMessage))}");
                         continue;
                     }
 
@@ -186,7 +321,7 @@ public class InventoryController : ControllerBase
                 }
                 catch (Exception ex)
                 {
-                    errors.Add($"Error in row {row}: {ex.Message}");
+                    errors.Add($"Satır {row} hata: {ex.Message}");
                 }
             }
 
@@ -202,13 +337,13 @@ public class InventoryController : ControllerBase
                 await _inventoryRepository.AddAsync(inventory);
             }
 
-            return Ok(new { Message = $"Successfully imported {importedInventories.Count} inventories" });
+            return Ok(new { Message = $"{importedInventories.Count} envanter başarıyla içe aktarıldı" });
         }
         catch (Exception ex)
         {
-            return StatusCode(500, $"Internal server error: {ex.Message}");
+            return StatusCode(500, $"Sunucu hatası: {ex.Message}");
         }
-    }*/
+    }
 
     [HttpGet]
     //[Authorize(Policy = "CanView")]
@@ -263,13 +398,32 @@ public class InventoryController : ControllerBase
             return Unauthorized("Invalid user ID");
         }
 
+        // Get the current user to populate location-related fields
+        var currentUser = await _userRepository.GetByIdAsync(userId);
+        if (currentUser == null)
+        {
+            return NotFound("User not found");
+        }
+        
+        createInventoryDto.Location = currentUser.Location;
+        createInventoryDto.Department = currentUser.Department.ToString();
+        createInventoryDto.Room = currentUser.Room;
+        createInventoryDto.Floor = currentUser.Floor;
+
+        // Set the status to a default value if not provided
+        if (string.IsNullOrEmpty(createInventoryDto.Status))
+        {
+            createInventoryDto.Status = "Aktif";
+        }
+
+        // Set the creator ID
+        createInventoryDto.CreatedUserId = userId;
+
         var validationResult = await _validator.ValidateAsync(createInventoryDto);
         if (!validationResult.IsValid)
         {
             return BadRequest(validationResult.Errors);
         }
-
-        createInventoryDto.CreatedUserId = userId;
 
         // Declare createdInventory outside the try block
         Inventory createdInventory = null;
@@ -312,7 +466,7 @@ public class InventoryController : ControllerBase
                     createInventoryDto.AssignedUserId.Value,
                     "İlk atama");
             }
-            
+
             if (files != null && files.Any() && !files.All(f => f.Length == 0))
             {
                 // Define allowed file types
@@ -629,7 +783,6 @@ public class InventoryController : ControllerBase
                 i.Location.Contains(searchTerm) ||
                 i.Room.Contains(searchTerm) ||
                 i.Floor.Contains(searchTerm) ||
-                i.Block.Contains(searchTerm) ||
                 i.Department.Contains(searchTerm) ||
                 i.Supplier.Contains(searchTerm));
         }

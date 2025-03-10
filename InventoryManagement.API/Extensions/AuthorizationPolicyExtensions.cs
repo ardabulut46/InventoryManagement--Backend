@@ -53,6 +53,7 @@ namespace InventoryManagement.API.Extensions
                     policy.RequireClaim("Permission", Permissions.Tickets.Delete));
                 options.AddPolicy(Permissions.Tickets.Assign, policy =>
                     policy.RequireClaim("Permission", Permissions.Tickets.Assign));
+                
                 // Role Policies
                 options.AddPolicy(Permissions.Roles.View, policy =>
                     policy.RequireClaim("Permission", Permissions.Roles.View));

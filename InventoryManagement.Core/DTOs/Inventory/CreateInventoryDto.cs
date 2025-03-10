@@ -23,12 +23,11 @@ public class CreateInventoryDto
     [Required(ErrorMessage = "Model bilgisi zorunludur")]
     public int ModelId { get; set; }
     
-    public string Location { get; set; }
-    public string Status { get; set; }
-    public string Room { get; set; }
-    public string Floor { get; set; }
-    public string Block { get; set; }
-    public string Department { get; set; }
+    public string? Location { get; set; }
+    public string? Status { get; set; }
+    public string? Room { get; set; }
+    public string? Floor { get; set; }
+    public string? Department { get; set; }
     public DateTime PurchaseDate { get; set; }
     public int PurchasePrice { get; set; }
     public PurchaseCurrency PurchaseCurrency { get; set; }

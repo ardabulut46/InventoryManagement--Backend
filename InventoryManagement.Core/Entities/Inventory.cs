@@ -31,7 +31,6 @@ public class Inventory : BaseEntity
     public string Status { get; set; }
     public string Room { get; set; }
     public string Floor { get; set; }
-    public string Block { get; set; }
     public string Department { get; set; }
     public string Location { get; set; }
     public DateTime? WarrantyStartDate { get; set; }
