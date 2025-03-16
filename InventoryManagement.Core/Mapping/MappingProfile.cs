@@ -16,6 +16,7 @@ using InventoryManagement.Core.DTOs.Ticket;
 using InventoryManagement.Core.DTOs.TicketHistory;
 using InventoryManagement.Core.DTOs.TicketNote;
 using InventoryManagement.Core.DTOs.TicketSolution;
+using InventoryManagement.Core.Enums;
 using InventoryManagement.Core.Helpers;
 
 
@@ -155,10 +156,20 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TypeName, opt => opt.MapFrom(src => src.Type != null ? src.Type.Name : null))
             .ForMember(dest => dest.BrandName, opt => opt.MapFrom(src => src.Brand != null ? src.Brand.Name : null))
             .ForMember(dest => dest.ModelName, opt => opt.MapFrom(src => src.Model != null ? src.Model.Name : null));
+        
+        // In your mapping profile class
+        CreateMap<Company, CompanyDto>()
+            .ForMember(dest => dest.Type, opt => opt.MapFrom(src => (int)src.CompanyType))
+            .ForMember(dest => dest.TypeName, opt => opt.MapFrom(src => 
+                src.CompanyType == CompanyType.Support ? "Destek Şirketi" : 
+                src.CompanyType == CompanyType.Supplier ? "Tedarikçi Şirket" : 
+                "Bilinmeyen"));
 
-        CreateMap<Company, CompanyDto>();
-        CreateMap<CreateCompanyDto, Company>();
-        CreateMap<UpdateCompanyDto, Company>();
+        CreateMap<CreateCompanyDto, Company>()
+            .ForMember(dest => dest.CompanyType, opt => opt.MapFrom(src => src.Type));
+
+        CreateMap<UpdateCompanyDto, Company>()
+            .ForMember(dest => dest.CompanyType, opt => opt.MapFrom(src => src.Type));
         CreateMap<InventoryAttachment, InventoryAttachmentDto>();
         
         CreateMap<InventoryHistory, InventoryHistoryDto>()

@@ -12,9 +12,11 @@ using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authorization;
 using OfficeOpenXml;
 using System.ComponentModel.DataAnnotations;
+using InventoryManagement.API.Extensions;
 using InventoryManagement.Core.DTOs.InventoryAttachment;
 using InventoryManagement.Core.Enums;
 using InventoryManagement.Infrastructure.Repositories;
+using QuestPDF.Fluent;
 
 namespace InventoryManagement.API.Controllers
 { 
@@ -279,9 +281,24 @@ public class InventoryController : ControllerBase
 
                     // Handle currency enum
                     var currencyStr = worksheet.Cells[row, 10].Value?.ToString();
-                    if (!string.IsNullOrEmpty(currencyStr) &&
-                        Enum.TryParse<PurchaseCurrency>(currencyStr, out var currency))
-                        inventoryDto.PurchaseCurrency = currency;
+                    if (!string.IsNullOrEmpty(currencyStr))
+                    {
+                        switch (currencyStr.ToUpper())
+                        {
+                            case "TRY":
+                                inventoryDto.PurchaseCurrency = PurchaseCurrency.Try;
+                                break;
+                            case "USD":
+                                inventoryDto.PurchaseCurrency = PurchaseCurrency.Usd;
+                                break;
+                            case "EUR":
+                                inventoryDto.PurchaseCurrency = PurchaseCurrency.Eur;
+                                break;
+                            default:
+                                errors.Add($"Satır {row}: Geçersiz para birimi: {currencyStr}. Geçerli değerler: TRY, USD, EUR");
+                                break;
+                        }
+                    }
 
                     if (DateTime.TryParse(worksheet.Cells[row, 11].Value?.ToString(), out DateTime warrantyStart))
                         inventoryDto.WarrantyStartDate = warrantyStart;
@@ -1137,7 +1154,7 @@ public class InventoryController : ControllerBase
             .ToListAsync();
         return Ok(models);
     }
-    
-    
+
+
 }
 }

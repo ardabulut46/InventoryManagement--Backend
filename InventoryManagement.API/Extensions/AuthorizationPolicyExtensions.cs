@@ -64,6 +64,10 @@ namespace InventoryManagement.API.Extensions
                 options.AddPolicy(Permissions.Roles.Edit, policy =>
                     policy.RequireClaim("Permission", Permissions.Roles.Edit));
                 
+                // Access to admin panel
+                options.AddPolicy(Permissions.AdminPanel.View, policy =>
+                    policy.RequireClaim("Permission", Permissions.AdminPanel.View));
+                
                 
                 // Role-based composite policies
                 options.AddPolicy(Policies.InventoryManager, policy =>

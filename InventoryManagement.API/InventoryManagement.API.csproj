@@ -24,6 +24,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.SemanticKernel" Version="1.38.0" />
         <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="8.0.7" />
+        <PackageReference Include="QuestPDF" Version="2025.1.5" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
     </ItemGroup>
 

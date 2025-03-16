@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using InventoryManagement.Core.Enums;
 
 namespace InventoryManagement.Core.DTOs.Company;
 
@@ -18,4 +19,7 @@ public class UpdateCompanyDto
     [Required(ErrorMessage = "Telefon numarası zorunludur")]
     [Phone(ErrorMessage = "Geçerli bir telefon numarası giriniz")]
     public string Phone { get; set; }
+
+    [Required(ErrorMessage = "Firma tipi zorunludur")]
+    public CompanyType Type { get; set; }
 }

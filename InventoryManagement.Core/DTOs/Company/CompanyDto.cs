@@ -7,6 +7,8 @@ public class CompanyDto
     public string Address { get; set; }
     public string Email { get; set; }
     public string Phone { get; set; }
+    public int Type { get; set;}
+    public string TypeName { get; set; }
     public DateTime CreatedDate { get; set; }
     public DateTime? UpdatedDate { get; set; }
 }

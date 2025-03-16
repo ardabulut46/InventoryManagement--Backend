@@ -88,3 +88,5 @@ msbuild.wrn
 **/appsettings.Development.json
 **/appsettings.Production.json
 
+k8s
+

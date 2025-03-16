@@ -44,6 +44,14 @@ public static class Permissions
         public const string Edit = "Roles:Edit";
         public const string Delete = "Roles:Delete";
     }
+
+    // Access to admin panel
+    public static class AdminPanel
+    {
+        public const string View = "AdminPanel:View";
+    }
+    
+    
 }
     
 public static class Policies

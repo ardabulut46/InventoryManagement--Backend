@@ -1,6 +1,7 @@
 using AutoMapper;
 using InventoryManagement.Core.DTOs.Company;
 using InventoryManagement.Core.Entities;
+using InventoryManagement.Core.Enums;
 using InventoryManagement.Core.Interfaces;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -42,6 +43,12 @@ namespace InventoryManagement.API.Controllers
         [HttpPost]
         public async Task<ActionResult<CompanyDto>> CreateCompany(CreateCompanyDto createCompanyDto)
         {
+            // Validate that the company type is valid
+            if (!Enum.IsDefined(typeof(CompanyType), createCompanyDto.Type))
+            {
+                return BadRequest("Invalid company type specified");
+            }
+
             var company = _mapper.Map<Company>(createCompanyDto);
             var createdCompany = await _companyRepository.AddAsync(company);
             return CreatedAtAction(nameof(GetCompany), 
@@ -52,6 +59,12 @@ namespace InventoryManagement.API.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> UpdateCompany(int id, UpdateCompanyDto updateCompanyDto)
         {
+            // Validate that the company type is valid
+            if (!Enum.IsDefined(typeof(CompanyType), updateCompanyDto.Type))
+            {
+                return BadRequest("Invalid company type specified");
+            }
+
             var company = await _companyRepository.GetByIdAsync(id);
             if (company == null)
                 return NotFound();
