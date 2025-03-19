@@ -10,7 +10,7 @@ namespace InventoryManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     public class SolutionTimeController : ControllerBase
     {
         private readonly IGenericRepository<SolutionTime> _solutionTimeRepository;

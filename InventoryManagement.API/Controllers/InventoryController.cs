@@ -380,6 +380,48 @@ public class InventoryController : ControllerBase
             "Attachments");
         return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
     }
+    [HttpGet("group-inventories")]
+    [Authorize]
+    public async Task<ActionResult<IEnumerable<InventoryDto>>> GetMyGroupInventories()
+    {
+        // Get current user ID
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(currentUserId, out int userId))
+        {
+            return Unauthorized("Invalid user ID format");
+        }
+
+        // Get user's group
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+        if (user == null || !user.GroupId.HasValue)
+        {
+            return BadRequest("User not found or not assigned to a group");
+        }
+
+        // Get all users in this group
+        var groupUsers = await _context.Users
+            .Where(u => u.GroupId == user.GroupId)
+            .Select(u => u.Id)
+            .ToListAsync();
+
+        // Get all inventories assigned to users in this group
+        var inventories = await _inventoryRepository.SearchWithIncludesAsync(
+            i => i.IsActive && i.AssignedUserId.HasValue && groupUsers.Contains(i.AssignedUserId.Value),
+            "AssignedUser",
+            "LastUser",
+            "CreatedUser",
+            "SupportCompany",
+            "InventoryHistory",
+            "Family",
+            "Type",
+            "Brand",
+            "Model",
+            "Attachments"
+        );
+
+        return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
+    }
+
 
     [HttpGet("{id}")]
     public async Task<ActionResult<InventoryDto>> GetInventory(int id)

@@ -11,7 +11,7 @@ namespace InventoryManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")] 
+   // [Authorize(Roles = "Admin")] 
     public class AssignmentTimesController : ControllerBase
     {
         private readonly IGenericRepository<AssignmentTime> _assignmentTimeRepository;

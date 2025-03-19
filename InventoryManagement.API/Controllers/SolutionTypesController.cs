@@ -33,7 +33,7 @@ public class SolutionTypesController : ControllerBase
         return Ok(solutionTypes);
     }
 
-    [Authorize(Roles = "Admin")]
+   // [Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<SolutionType>> CreateSolutionType(CreateSolutionTypeDto dto)
     {
@@ -50,7 +50,7 @@ public class SolutionTypesController : ControllerBase
         return CreatedAtAction(nameof(GetSolutionTypes), new { id = solutionType.Id }, solutionType);
     }
     
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateSolutionType(int id, SolutionType solutionType)
     {

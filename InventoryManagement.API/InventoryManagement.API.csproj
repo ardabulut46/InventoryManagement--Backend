@@ -37,6 +37,7 @@
       <Folder Include="Areas\ModelController\Data\" />
       <Folder Include="Areas\ModelController\Models\" />
       <Folder Include="Areas\ModelController\Views\" />
+      <Folder Include="wwwroot\uploads\notes\6\1\" />
     </ItemGroup>
 
 </Project>

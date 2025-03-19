@@ -3,7 +3,9 @@ using InventoryManagement.Core.Entities;
 using AutoMapper;
 using InventoryManagement.Core.DTOs.AssignmentTime;
 using InventoryManagement.Core.DTOs.Auth;
+using InventoryManagement.Core.DTOs.CancelReason;
 using InventoryManagement.Core.DTOs.Company;
+using InventoryManagement.Core.DTOs.DelayReason;
 using InventoryManagement.Core.DTOs.Department;
 using InventoryManagement.Core.DTOs.Family;
 using InventoryManagement.Core.DTOs.Group;
@@ -199,6 +201,17 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
             .ForMember(dest => dest.SecurityStamp, opt => opt.Ignore())
             .ForMember(dest => dest.ConcurrencyStamp, opt => opt.Ignore());
+        
+        
+        // DelayReason mappings
+        CreateMap<DelayReason, DelayReasonDto>();
+        CreateMap<CreateDelayReasonDto, DelayReason>();
+        CreateMap<UpdateDelayReasonDto, DelayReason>();
+
+        // CancelReason mappings
+        CreateMap<CancelReason, CancelReasonDto>();
+        CreateMap<CreateCancelReasonDto, CancelReason>();
+        CreateMap<UpdateCancelReasonDto, CancelReason>();
     }
     
 }

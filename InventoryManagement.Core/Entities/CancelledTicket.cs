@@ -10,4 +10,6 @@ public class CancelledTicket : BaseEntity
 
     public int CancelReasonId { get; set; }
     public CancelReason CancelReason { get; set; }
+
+    public string? Notes { get; set; }
 }

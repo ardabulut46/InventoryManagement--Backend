@@ -45,6 +45,8 @@ public class ApplicationDbContext : IdentityDbContext<User,Role, int>
     public DbSet<InventoryType> InventoryTypes { get; set; }
     public DbSet<Brand> Brands { get; set; }
     public DbSet<Model> Models { get; set; }
+    public DbSet<DelayReason> DelayReasons { get; set; }
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     { 

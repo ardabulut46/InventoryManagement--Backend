@@ -370,7 +370,195 @@ namespace InventoryManagement.API.Controllers
                 "User", "Group.Department", "Group", "Inventory", "CreatedBy");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
+        [HttpGet("my-cancelled-tickets")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TicketDto>>> GetMyCancelledTickets()
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // Get tickets that were assigned to this user and have been cancelled
+            var tickets = await _ticketRepository.SearchWithIncludesAsync(
+                t => t.UserId == userId && t.Status == TicketStatus.Cancelled.ToString(),
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+
+            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+        }
+        [HttpGet("high-priority-tickets")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TicketDto>>> GetHighPriorityTickets()
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // Get user's group
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null || !user.GroupId.HasValue)
+            {
+                return BadRequest("User not found or not assigned to a group");
+            }
+
+            // Get high and critical priority tickets assigned to the user
+            var tickets = await _ticketRepository.SearchWithIncludesAsync(
+                t => t.UserId == userId && 
+                     (t.Priority == TicketPriority.Critical || t.Priority == TicketPriority.High),
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+
+            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+        }
         
+        [HttpGet("my-solved-tickets")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TicketDto>>> GetMySolvedTickets()
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // First get all ticket solutions by this user
+            var ticketSolutions = await _context.TicketSolutions
+                .Where(ts => ts.AssignedUserId == userId)
+                .Select(ts => ts.TicketId)
+                .ToListAsync();
+
+            if (!ticketSolutions.Any())
+            {
+                return Ok(new List<TicketDto>());
+            }
+
+            // Then get the corresponding tickets
+            var tickets = await _ticketRepository.SearchWithIncludesAsync(
+                t => ticketSolutions.Contains(t.Id),
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+
+            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+        }
+        
+        [HttpGet("my-group-solved-tickets")]
+        [Authorize]
+        public async Task<ActionResult<IEnumerable<TicketDto>>> GetMyGroupSolvedTickets()
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // Get user's group
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null || !user.GroupId.HasValue)
+            {
+                return BadRequest("User not found or not assigned to a group");
+            }
+
+            // Get all users in this group
+            var groupUsers = await _context.Users
+                .Where(u => u.GroupId == user.GroupId)
+                .Select(u => u.Id)
+                .ToListAsync();
+
+            // Get all ticket solutions by users in this group
+            var ticketSolutions = await _context.TicketSolutions
+                .Where(ts => groupUsers.Contains(ts.AssignedUserId))
+                .Select(ts => ts.TicketId)
+                .ToListAsync();
+
+            if (!ticketSolutions.Any())
+            {
+                return Ok(new List<TicketDto>());
+            }
+
+            // Then get the corresponding tickets
+            var tickets = await _ticketRepository.SearchWithIncludesAsync(
+                t => ticketSolutions.Contains(t.Id),
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+
+            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+        }
+
+        [HttpPost("{id}/cancel")]
+        [Authorize]
+        public async Task<ActionResult<TicketDto>> CancelTicket(int id, [FromBody] CancelTicketDto cancelTicketDto)
+        {
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+            {
+                return Unauthorized("Invalid user ID");
+            }
+
+            // Get the ticket with includes
+            var ticket = await _ticketRepository.GetByIdWithIncludesAsync(
+                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
+
+            if (ticket == null)
+            {
+                return NotFound("Ticket not found");
+            }
+
+            // Verify if the user owns this ticket
+            if (ticket.UserId != userId)
+            {
+                return Forbid("You can only cancel tickets assigned to you");
+            }
+
+            // Verify the cancel reason exists
+            var cancelReason =
+                await _context.CancelReasons.FirstOrDefaultAsync(cr =>
+                    cr.Id == cancelTicketDto.CancelReasonId && cr.IsActive);
+            if (cancelReason == null)
+            {
+                return BadRequest("Invalid or inactive cancel reason");
+            }
+
+            // Create cancelled ticket record
+            var cancelledTicket = new CancelledTicket
+            {
+                TicketId = ticket.Id,
+                UserId = userId,
+                CancelReasonId = cancelTicketDto.CancelReasonId,
+                Notes = cancelTicketDto.Notes
+            };
+
+            // Update ticket status
+            ticket.Status = TicketStatus.Cancelled.ToString();
+
+            // Save changes
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            try
+            {
+                await _context.CancelledTickets.AddAsync(cancelledTicket);
+                await _ticketRepository.UpdateAsync(ticket);
+                await _context.SaveChangesAsync();
+                await transaction.CommitAsync();
+
+                var updatedTicket = await _ticketRepository.GetByIdWithIncludesAsync(
+                    id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
+                return Ok(_mapper.Map<TicketDto>(updatedTicket));
+            }
+            catch (Exception)
+            {
+                await transaction.RollbackAsync();
+                return StatusCode(500, "An error occurred while cancelling the ticket");
+            }
+        }
+        
+        
+
+
+
         [HttpGet("created-tickets")]
         [Authorize]
         public async Task<ActionResult<IEnumerable<TicketDto>>>MyTickets()

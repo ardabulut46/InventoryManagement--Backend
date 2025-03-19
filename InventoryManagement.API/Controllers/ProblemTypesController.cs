@@ -36,7 +36,7 @@ public class ProblemTypesController : ControllerBase
         return Ok(problemTypes);
     }
 
-    [Authorize(Roles = "Admin")]
+    //[Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<ProblemType>> CreateProblemType(CreateProblemTypeDto dto)
     {
