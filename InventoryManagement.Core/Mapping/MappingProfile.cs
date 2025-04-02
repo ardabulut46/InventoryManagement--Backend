@@ -48,6 +48,7 @@ public class MappingProfile : Profile
         
         CreateMap<Ticket, TicketDto>()
             .ForMember(dest => dest.User, opt => opt.MapFrom(src => src.User))
+            .ForMember(dest => dest.ProblemTypeName, opt => opt.MapFrom(src => src.ProblemType != null ? src.ProblemType.Name : null))
             .ForMember(dest => dest.Inventory, opt => opt.MapFrom(src => src.Inventory));
         CreateMap<CreateTicketDto, Ticket>();
         CreateMap<UpdateTicketDto, Ticket>();

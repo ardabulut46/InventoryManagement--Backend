@@ -21,6 +21,7 @@ public class ProblemTypesController : ControllerBase
     {
         var problemTypes = await _context.ProblemTypes
             .Include(p => p.Group)
+            .Include(p => p.Group.Department)
             .ToListAsync();
         return Ok(problemTypes);
     }
@@ -31,6 +32,7 @@ public class ProblemTypesController : ControllerBase
     {
         var problemTypes = await _context.ProblemTypes
             .Include(p => p.Group)
+            .Include(p => p.Group.Department)
             .Where(p => p.IsActive)
             .ToListAsync();
         return Ok(problemTypes);

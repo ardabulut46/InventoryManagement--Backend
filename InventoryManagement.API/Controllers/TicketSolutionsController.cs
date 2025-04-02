@@ -8,6 +8,7 @@ using System.Security.Claims;
 using InventoryManagement.Core.DTOs;
 using InventoryManagement.Core.DTOs.SolutionReview;
 using InventoryManagement.Core.DTOs.User;
+using InventoryManagement.Core.Enums;
 using InventoryManagement.Core.Helpers;
 using InventoryManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -127,6 +128,7 @@ namespace InventoryManagement.API.Controllers
                 solution.SolutionDate = DateTime.Now;
 
                 _context.TicketSolutions.Add(solution);
+                ticket.Status = TicketStatus.Resolved;
                 await _context.SaveChangesAsync();
 
                 var expectedSolutionTime = ticket.AssignedDate.Value.Add(solutionTime.TimeToSolve);

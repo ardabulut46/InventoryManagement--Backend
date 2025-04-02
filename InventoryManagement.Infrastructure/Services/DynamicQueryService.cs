@@ -1,4 +1,5 @@
 using AutoMapper;
+using InventoryManagement.Core.Enums;
 using InventoryManagement.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 
@@ -22,7 +23,7 @@ public class DynamicQueryService
             "total_inventories" => await _context.Inventories.CountAsync(),
             "active_inventories" => await _context.Inventories.CountAsync(i => i.Status == "Active"),
             "total_tickets" => await _context.Tickets.CountAsync(),
-            "open_tickets" => await _context.Tickets.CountAsync(t => t.Status == "Open"),
+            "open_tickets" => await _context.Tickets.CountAsync(t => t.Status == TicketStatus.Open),
             "total_users" => await _context.Users.CountAsync(),
             "warranty_expired" => await _context.Inventories.CountAsync(i => i.WarrantyEndDate < DateTime.Now),
             "most_common_inventory_type" => await _context.Inventories

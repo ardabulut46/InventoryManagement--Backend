@@ -122,7 +122,7 @@ namespace InventoryManagement.API.Controllers
                 Subject = createTicketDto.Subject,
                 InventoryId = createTicketDto.InventoryId,
                 Description = createTicketDto.Description,
-                Status = "New",
+                Status = TicketStatus.Open,
                 AttachmentPath = createTicketDto.AttachmentPath,
                 CreatedById = userId,
                 Priority = createTicketDto.Priority,
@@ -221,7 +221,7 @@ namespace InventoryManagement.API.Controllers
 
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
                 t => t.GroupId == user.GroupId,
-                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy", "ProblemType");  // Add ProblemType here
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
 
@@ -270,7 +270,7 @@ namespace InventoryManagement.API.Controllers
 
             // Assign the ticket
             ticket.UserId = userId;
-            ticket.Status = "In Progress";
+            ticket.Status = TicketStatus.InProgress;
             ticket.AssignedDate = DateTime.Now;
             ticket.IdleDuration = ticket.AssignedDate - ticket.CreatedDate;
 
@@ -330,7 +330,7 @@ namespace InventoryManagement.API.Controllers
             // Update ticket
             ticket.GroupId = transferDto.GroupId;
             ticket.UserId = null; // Remove current assignment
-            ticket.Status = "New"; // Reset status to new
+            ticket.Status = TicketStatus.Open; // Reset status to new
             ticket.AssignedDate = null; // Reset assigned date
             ticket.IdleDuration = null; // Reset idle duration
 
@@ -383,7 +383,7 @@ namespace InventoryManagement.API.Controllers
 
             // Get tickets that were assigned to this user and have been cancelled
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
-                t => t.UserId == userId && t.Status == TicketStatus.Cancelled.ToString(),
+                t => t.UserId == userId && t.Status == TicketStatus.Cancelled,
                 "User", "Group.Department", "Group", "Inventory", "CreatedBy");
 
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
@@ -533,7 +533,7 @@ namespace InventoryManagement.API.Controllers
             };
 
             // Update ticket status
-            ticket.Status = TicketStatus.Cancelled.ToString();
+            ticket.Status = TicketStatus.Cancelled;
 
             // Save changes
             await using var transaction = await _context.Database.BeginTransactionAsync();
@@ -555,8 +555,6 @@ namespace InventoryManagement.API.Controllers
             }
         }
         
-        
-
 
 
         [HttpGet("created-tickets")]
