@@ -11,7 +11,7 @@ namespace InventoryManagement.API.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [Authorize(Roles = "Admin")]
+    
     public class IdleDurationLimitController : ControllerBase
     {
         private readonly IGenericRepository<IdleDurationLimit> _idleDurationLimitRepository;
