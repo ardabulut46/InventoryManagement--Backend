@@ -40,7 +40,13 @@ builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
     .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
     .AddEnvironmentVariables();
-
+/*
+builder.Services.AddControllers()
+    .AddJsonOptions(options => 
+    {
+        options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
+    });
+*/
 /*var semanticKernel = Kernel.CreateBuilder()
     .AddOllamaChatCompletion("deepseek-r1:latest", "http://localhost:11434");
 builder.Services.AddSingleton(semanticKernel.Build());*/
@@ -193,7 +199,6 @@ app.UseCors("AllowAll");
 // Authentication & Authorization
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
 
 // Seed metodları 

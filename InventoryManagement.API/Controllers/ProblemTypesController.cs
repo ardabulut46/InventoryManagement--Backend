@@ -17,27 +17,47 @@ public class ProblemTypesController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<ProblemType>>> GetProblemTypes()
+    public async Task<ActionResult<IEnumerable<ProblemTypeDto>>> GetProblemTypes()
     {
         var problemTypes = await _context.ProblemTypes
             .Include(p => p.Group)
             .Include(p => p.Group.Department)
             .ToListAsync();
-        return Ok(problemTypes);
+    
+        var dtos = problemTypes.Select(p => new ProblemTypeDto
+        {
+            Id = p.Id,
+            Name = p.Name,
+            GroupId = p.GroupId,
+            GroupName = p.Group.Name,
+            IsActive = p.IsActive
+        });
+
+        return Ok(dtos);
     }
 
     [HttpGet("active")]
     [AllowAnonymous]
-    public async Task<ActionResult<IEnumerable<ProblemType>>> GetActiveProblemTypes()
+    public async Task<ActionResult<IEnumerable<ProblemTypeDto>>> GetActiveProblemTypes()
     {
         var problemTypes = await _context.ProblemTypes
             .Include(p => p.Group)
             .Include(p => p.Group.Department)
             .Where(p => p.IsActive)
             .ToListAsync();
-        return Ok(problemTypes);
-    }
+    
+        var dtos = problemTypes.Select(p => new ProblemTypeDto
+        {
+            Id = p.Id,
+            Name = p.Name,
+            GroupId = p.GroupId,
+            GroupName = p.Group.Name,
+            IsActive = p.IsActive
+        });
 
+        return Ok(dtos);
+    }
+    
     //[Authorize(Roles = "Admin")]
     [HttpPost]
     public async Task<ActionResult<ProblemType>> CreateProblemType(CreateProblemTypeDto dto)
