@@ -21,7 +21,7 @@ public class DynamicQueryService
         return queryType.ToLower() switch
         {
             "total_inventories" => await _context.Inventories.CountAsync(),
-            "active_inventories" => await _context.Inventories.CountAsync(i => i.Status == "Active"),
+            "active_inventories" => await _context.Inventories.CountAsync(i => i.Status == InventoryStatus.Available),
             "total_tickets" => await _context.Tickets.CountAsync(),
             "open_tickets" => await _context.Tickets.CountAsync(t => t.Status == TicketStatus.Open),
             "total_users" => await _context.Users.CountAsync(),

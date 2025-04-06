@@ -38,7 +38,9 @@ public class MappingProfile : Profile
         CreateMap<Group, GroupDto>();
         CreateMap<GroupDto, Group>();
         CreateMap<CreateGroupDto, Group>();
-        
+        // In your MappingProfile.cs
+        CreateMap<UpdateInventoryDto, Inventory>()
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status));
         
         CreateMap<Inventory, InventoryDto>()
             .ForMember(dest => dest.AssignedUser, opt => opt.MapFrom(src => src.AssignedUser))
@@ -85,6 +87,7 @@ public class MappingProfile : Profile
                 opt => opt.MapFrom(src => src.ProblemType.Name));
 
         CreateMap<CreateUpdateIdleDurationLimitDto, IdleDurationLimit>();
+        
         
         CreateMap<CreateUpdateSolutionTimeDto, SolutionTime>();
         

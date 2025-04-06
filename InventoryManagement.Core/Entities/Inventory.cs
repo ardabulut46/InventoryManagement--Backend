@@ -28,7 +28,7 @@ public class Inventory : BaseEntity
     public Model? Model { get; set; }
     public int? PurchasePrice { get; set; }
     public PurchaseCurrency? PurchaseCurrency { get; set; }
-    public string Status { get; set; }
+    public InventoryStatus Status { get; set; }
     public string Room { get; set; }
     public string Floor { get; set; }
     public string Department { get; set; }
@@ -38,7 +38,6 @@ public class Inventory : BaseEntity
     
     public DateTime? PurchaseDate { get; set; }
     
-    public string Supplier { get; set; }
     public int? SupportCompanyId { get; set; }
     public Company SupportCompany { get; set; }
 

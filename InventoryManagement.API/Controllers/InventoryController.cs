@@ -15,6 +15,7 @@ using System.ComponentModel.DataAnnotations;
 using InventoryManagement.API.Extensions;
 using InventoryManagement.Core.DTOs.InventoryAttachment;
 using InventoryManagement.Core.Enums;
+using InventoryManagement.Core.Helpers;
 using InventoryManagement.Infrastructure.Repositories;
 using QuestPDF.Fluent;
 
@@ -270,12 +271,13 @@ public class InventoryController : ControllerBase
                     }
 
                     // Status field (now at column 7)
-                    inventoryDto.Status = worksheet.Cells[row, 7].Value?.ToString() ?? "Aktif";
+                    // Status field (now at column 7)
+                    string statusText = worksheet.Cells[row, 7].Value?.ToString() ?? "Aktif";
+                    inventoryDto.Status = InventoryStatusHelper.MapStringToInventoryStatus(statusText);
 
                     // Handle dates and numeric values (adjusted column indices)
                     if (DateTime.TryParse(worksheet.Cells[row, 8].Value?.ToString(), out DateTime purchaseDate))
-                        inventoryDto.PurchaseDate = purchaseDate;
-
+                        
                     if (int.TryParse(worksheet.Cells[row, 9].Value?.ToString(), out int purchasePrice))
                         inventoryDto.PurchasePrice = purchasePrice;
 
@@ -305,8 +307,7 @@ public class InventoryController : ControllerBase
 
                     if (DateTime.TryParse(worksheet.Cells[row, 12].Value?.ToString(), out DateTime warrantyEnd))
                         inventoryDto.WarrantyEndDate = warrantyEnd;
-
-                    inventoryDto.Supplier = worksheet.Cells[row, 13].Value?.ToString();
+                    
 
                     // Handle user assignment by email
                     var userEmail = worksheet.Cells[row, 14].Value?.ToString();
@@ -447,86 +448,86 @@ public class InventoryController : ControllerBase
 
     [HttpPost]
     public async Task<ActionResult<InventoryDto>> CreateInventory(
-        [FromForm] CreateInventoryDto createInventoryDto,
-        [FromForm] List<IFormFile> files = null,
-        [FromForm] string fileDescription = "")
+    [FromForm] CreateInventoryDto createInventoryDto,
+    [FromForm] List<IFormFile> files = null,
+    [FromForm] string fileDescription = "")
+{
+    var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (!int.TryParse(currentUserId, out int userId))
     {
-        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!int.TryParse(currentUserId, out int userId))
+        return Unauthorized("Invalid user ID");
+    }
+
+    // Get the current user to populate location-related fields
+    var currentUser = await _userRepository.GetByIdAsync(userId);
+    if (currentUser == null)
+    {
+        return NotFound("User not found");
+    }
+    
+    createInventoryDto.Location = currentUser.Location;
+    createInventoryDto.Department = currentUser.Department.ToString();
+    createInventoryDto.Room = currentUser.Room;
+    createInventoryDto.Floor = currentUser.Floor;
+
+    // Set the status to a default value if not provided
+    if (!createInventoryDto.Status.HasValue)
+    {
+        createInventoryDto.Status = InventoryStatus.Available;
+    }
+
+    // Set the creator ID
+    createInventoryDto.CreatedUserId = userId;
+
+    var validationResult = await _validator.ValidateAsync(createInventoryDto);
+    if (!validationResult.IsValid)
+    {
+        return BadRequest(validationResult.Errors);
+    }
+
+    // Declare createdInventory outside the try block
+    Inventory createdInventory = null;
+
+    using var transaction = await _context.Database.BeginTransactionAsync();
+    try
+    {
+        // Verify that the referenced entities exist
+        var familyExists = await _context.Families.AnyAsync(f => f.Id == createInventoryDto.FamilyId);
+        if (!familyExists)
         {
-            return Unauthorized("Invalid user ID");
+            return BadRequest($"Family with ID {createInventoryDto.FamilyId} does not exist.");
         }
 
-        // Get the current user to populate location-related fields
-        var currentUser = await _userRepository.GetByIdAsync(userId);
-        if (currentUser == null)
+        var typeExists = await _context.InventoryTypes.AnyAsync(t => t.Id == createInventoryDto.TypeId);
+        if (!typeExists)
         {
-            return NotFound("User not found");
-        }
-        
-        createInventoryDto.Location = currentUser.Location;
-        createInventoryDto.Department = currentUser.Department.ToString();
-        createInventoryDto.Room = currentUser.Room;
-        createInventoryDto.Floor = currentUser.Floor;
-
-        // Set the status to a default value if not provided
-        if (string.IsNullOrEmpty(createInventoryDto.Status))
-        {
-            createInventoryDto.Status = "Aktif";
+            return BadRequest($"Type with ID {createInventoryDto.TypeId} does not exist.");
         }
 
-        // Set the creator ID
-        createInventoryDto.CreatedUserId = userId;
-
-        var validationResult = await _validator.ValidateAsync(createInventoryDto);
-        if (!validationResult.IsValid)
+        var brandExists = await _context.Brands.AnyAsync(b => b.Id == createInventoryDto.BrandId);
+        if (!brandExists)
         {
-            return BadRequest(validationResult.Errors);
+            return BadRequest($"Brand with ID {createInventoryDto.BrandId} does not exist.");
         }
 
-        // Declare createdInventory outside the try block
-        Inventory createdInventory = null;
-
-        using var transaction = await _context.Database.BeginTransactionAsync();
-        try
+        var modelExists = await _context.Models.AnyAsync(m => m.Id == createInventoryDto.ModelId);
+        if (!modelExists)
         {
-            // Verify that the referenced entities exist
-            var familyExists = await _context.Families.AnyAsync(f => f.Id == createInventoryDto.FamilyId);
-            if (!familyExists)
-            {
-                return BadRequest($"Family with ID {createInventoryDto.FamilyId} does not exist.");
-            }
+            return BadRequest($"Model with ID {createInventoryDto.ModelId} does not exist.");
+        }
 
-            var typeExists = await _context.InventoryTypes.AnyAsync(t => t.Id == createInventoryDto.TypeId);
-            if (!typeExists)
-            {
-                return BadRequest($"Type with ID {createInventoryDto.TypeId} does not exist.");
-            }
+        var inventory = _mapper.Map<Inventory>(createInventoryDto);
+        createdInventory = await _inventoryRepository.AddAsync(inventory);
 
-            var brandExists = await _context.Brands.AnyAsync(b => b.Id == createInventoryDto.BrandId);
-            if (!brandExists)
-            {
-                return BadRequest($"Brand with ID {createInventoryDto.BrandId} does not exist.");
-            }
+        if (createInventoryDto.AssignedUserId.HasValue)
+        {
+            await _inventoryRepository.AddInventoryHistoryAsync(
+                createdInventory.Id,
+                createInventoryDto.AssignedUserId.Value,
+                "İlk atama");
+        }
 
-            var modelExists = await _context.Models.AnyAsync(m => m.Id == createInventoryDto.ModelId);
-            if (!modelExists)
-            {
-                return BadRequest($"Model with ID {createInventoryDto.ModelId} does not exist.");
-            }
-
-            var inventory = _mapper.Map<Inventory>(createInventoryDto);
-            createdInventory = await _inventoryRepository.AddAsync(inventory);
-
-            if (createInventoryDto.AssignedUserId.HasValue)
-            {
-                await _inventoryRepository.AddInventoryHistoryAsync(
-                    createdInventory.Id,
-                    createInventoryDto.AssignedUserId.Value,
-                    "İlk atama");
-            }
-
-            if (files != null && files.Any() && !files.All(f => f.Length == 0))
+        if (files != null && files.Any() && !files.All(f => f.Length == 0))
             {
                 // Define allowed file types
                 var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png" };
@@ -645,10 +646,10 @@ public class InventoryController : ControllerBase
 
         // Store current user as last user before updating
         inventory.LastUserId = inventory.AssignedUserId;
-    
+
         // Update to new user
         inventory.AssignedUserId = userId;
-    
+
         // Close the previous assignment by setting its return date
         var currentAssignment = inventory.InventoryHistory
             .Where(h => h.ReturnDate == null)
@@ -663,44 +664,44 @@ public class InventoryController : ControllerBase
 
         // Create new assignment history
         await _inventoryRepository.AddInventoryHistoryAsync(id, userId, notes);
-    
+
         // Save changes
         await _inventoryRepository.UpdateAsync(inventory);
 
         return NoContent();
     }
-    
-   /* [HttpPut("{id}/return")]
-    public async Task<IActionResult> ReturnInventory(int id, string notes = null)
-    {
-        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(
-            id,
-            "InventoryHistory");
-        if (inventory == null)
-            return NotFound();
 
-        // Store current user as last user before clearing
-        inventory.LastUserId = inventory.AssignedUserId;
-    
-        // Clear current assignment
-        inventory.AssignedUserId = null;
+    /* [HttpPut("{id}/return")]
+     public async Task<IActionResult> ReturnInventory(int id, string notes = null)
+     {
+         var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(
+             id,
+             "InventoryHistory");
+         if (inventory == null)
+             return NotFound();
 
-        // Close the current assignment
-        var currentAssignment = inventory.InventoryHistory
-            .Where(h => h.ReturnDate == null)
-            .OrderByDescending(h => h.AssignmentDate)
-            .FirstOrDefault();
+         // Store current user as last user before clearing
+         inventory.LastUserId = inventory.AssignedUserId;
 
-        if (currentAssignment != null)
-        {
-            currentAssignment.ReturnDate = DateTime.Now;
-            currentAssignment.Notes += " | " + (notes ?? "Returned to inventory");
-        }
+         // Clear current assignment
+         inventory.AssignedUserId = null;
 
-        await _inventoryRepository.UpdateAsync(inventory);
+         // Close the current assignment
+         var currentAssignment = inventory.InventoryHistory
+             .Where(h => h.ReturnDate == null)
+             .OrderByDescending(h => h.AssignmentDate)
+             .FirstOrDefault();
 
-        return NoContent();
-    }*/
+         if (currentAssignment != null)
+         {
+             currentAssignment.ReturnDate = DateTime.Now;
+             currentAssignment.Notes += " | " + (notes ?? "Returned to inventory");
+         }
+
+         await _inventoryRepository.UpdateAsync(inventory);
+
+         return NoContent();
+     }*/
     
     [HttpGet("{id}/assignment-history")]
     public async Task<ActionResult<IEnumerable<InventoryHistoryDto>>> GetAssignmentHistory(int id)
@@ -795,6 +796,20 @@ public class InventoryController : ControllerBase
         return NoContent();
     }
     
+    [HttpPut("{id}/status")]
+    public async Task<IActionResult> UpdateInventoryStatus(int id, [FromBody] InventoryStatus status)
+    {
+        var inventory = await _inventoryRepository.GetByIdAsync(id);
+        if (inventory == null)
+            return NotFound();
+    
+        // Update the status
+        inventory.Status = status;
+    
+        await _inventoryRepository.UpdateAsync(inventory);
+        return Ok(new { Message = $"Inventory status updated to {status}" });
+    }
+    
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteInventory(int id)
     {
@@ -810,7 +825,7 @@ public class InventoryController : ControllerBase
     [HttpGet("search")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> SearchInventories(
         [FromQuery] string? searchTerm,
-        [FromQuery] string? status,
+        [FromQuery] InventoryStatus? status,
         [FromQuery] bool? hasUser,
         [FromQuery] int? familyId,
         [FromQuery] int? typeId,
@@ -842,13 +857,12 @@ public class InventoryController : ControllerBase
                 i.Location.Contains(searchTerm) ||
                 i.Room.Contains(searchTerm) ||
                 i.Floor.Contains(searchTerm) ||
-                i.Department.Contains(searchTerm) ||
-                i.Supplier.Contains(searchTerm));
+                i.Department.Contains(searchTerm));
         }
 
-        if (!string.IsNullOrWhiteSpace(status))
+        if (status.HasValue)
         {
-            filteredInventories = filteredInventories.Where(i => i.Status == status);
+            filteredInventories = filteredInventories.Where(i => i.Status == status.Value);
         }
 
         if (hasUser.HasValue)

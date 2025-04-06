@@ -24,7 +24,7 @@ public class CreateInventoryDto
     public int ModelId { get; set; }
     
     public string? Location { get; set; }
-    public string? Status { get; set; }
+    public InventoryStatus? Status { get; set; }
     public string? Room { get; set; }
     public string? Floor { get; set; }
     public string? Department { get; set; }
@@ -35,7 +35,6 @@ public class CreateInventoryDto
     public string? InvoiceAttachmentPath { get; set; }
     public DateTime? WarrantyStartDate { get; set; }
     public DateTime? WarrantyEndDate { get; set; }
-    public string Supplier { get; set; }
 
     public int? CreatedUserId { get; set; }
     public int? AssignedUserId { get; set; }

@@ -27,14 +27,13 @@ public class UpdateInventoryDto
     public string Location { get; set; }
     public int PurchasePrice { get; set; }
     public PurchaseCurrency PurchaseCurrency { get; set; }
-    public string Status { get; set; }
+    public InventoryStatus Status { get; set; }
     public string Room { get; set; }
     public string Floor { get; set; }
     public string Block { get; set; }
     public string Department { get; set; }
     public DateTime? WarrantyStartDate { get; set; }
     public DateTime? WarrantyEndDate { get; set; }
-    public string Supplier { get; set; }
     public int? AssignedUserId { get; set; }
     public int? SupportCompanyId { get; set; }
 }

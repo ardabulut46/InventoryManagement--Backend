@@ -114,8 +114,8 @@ namespace InventoryManagement.API.Controllers
             var ticket = new Ticket
             {
                 RegistrationNumber = registrationNumber,
-                GroupId = problemType.GroupId, // Assign based on problem type
-                UserId = null, // Initially no user assigned
+                GroupId = problemType.GroupId, 
+                UserId = null, 
                 ProblemType = problemType,
                 Location = currentUser.Location,
                 Room = currentUser.Room,
