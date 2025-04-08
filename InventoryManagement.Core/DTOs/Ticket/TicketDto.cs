@@ -32,6 +32,10 @@ public class TicketDto
     public DateTime AssignedDate { get; set; }
     public TimeSpan? IdleDuration { get; set; }
     public string IdleDurationDisplay { get; set; }
-    
+    public TimeSpan? TimeToAssign { get; set; }
+    public string TimeToAssignDisplay { get; set; }
+    public bool IsAssignmentOverdue => !UserId.Equals(default) 
+        ? false 
+        : TimeToAssign.HasValue && (DateTime.Now - CreatedDate) > TimeToAssign.Value;
     
 }

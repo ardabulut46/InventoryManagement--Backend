@@ -50,7 +50,7 @@ namespace InventoryManagement.API.Controllers
         {
             // Update the include path: use "Group.Department" instead of "Department"
             var tickets = await _ticketRepository.GetAllWithIncludesAsync(
-                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy","ProblemType","ProblemType.AssignmentTimes");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
 
@@ -58,7 +58,7 @@ namespace InventoryManagement.API.Controllers
         public async Task<ActionResult<TicketDto>> GetTicket(int id)
         {
             var ticket = await _ticketRepository.GetByIdWithIncludesAsync(
-                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory");
+                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory","ProblemType","ProblemType.AssignmentTimes");
             if (ticket == null)
                 return NotFound();
 
@@ -221,7 +221,7 @@ namespace InventoryManagement.API.Controllers
 
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
                 t => t.GroupId == user.GroupId,
-                "User", "Group.Department", "Group", "Inventory", "CreatedBy", "ProblemType");  // Add ProblemType here
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy", "ProblemType","ProblemType.AssignmentTimes");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
 
@@ -250,6 +250,8 @@ namespace InventoryManagement.API.Controllers
                 .Include(t => t.CreatedBy)
                 .Include(t => t.Group)
                 .ThenInclude(g => g.Department)
+                .Include(t => t.ProblemType)
+                .ThenInclude(pt => pt.AssignmentTimes)
                 .FirstOrDefaultAsync(t => t.Id == id);
             if (ticket == null)
             {

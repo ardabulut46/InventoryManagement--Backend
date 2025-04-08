@@ -130,7 +130,15 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.IdleDurationDisplay, opt => opt.MapFrom(src => 
                 src.IdleDuration.HasValue 
                     ? TimeSpanFormatter.Format(src.IdleDuration.Value) 
-                    : "Not assigned"));
+                    : "Not assigned"))
+            .ForMember(dest => dest.TimeToAssign, opt => opt.MapFrom(src => 
+                src.ProblemType != null && src.ProblemType.AssignmentTimes != null && src.ProblemType.AssignmentTimes.Any() 
+                    ? src.ProblemType.AssignmentTimes.FirstOrDefault().TimeToAssign 
+                    : (TimeSpan?)null))
+            .ForMember(dest => dest.TimeToAssignDisplay, opt => opt.MapFrom(src => 
+                src.ProblemType != null && src.ProblemType.AssignmentTimes != null && src.ProblemType.AssignmentTimes.Any() 
+                    ? TimeSpanFormatter.Format(src.ProblemType.AssignmentTimes.FirstOrDefault().TimeToAssign)
+                    : "No time limit defined"));
         
         CreateMap<TicketNote, TicketNoteDto>()
             .ForMember(d => d.CreatedByEmail, o => o.MapFrom(s => s.CreatedBy.Email))
