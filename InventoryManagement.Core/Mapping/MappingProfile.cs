@@ -138,7 +138,15 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.TimeToAssignDisplay, opt => opt.MapFrom(src => 
                 src.ProblemType != null && src.ProblemType.AssignmentTimes != null && src.ProblemType.AssignmentTimes.Any() 
                     ? TimeSpanFormatter.Format(src.ProblemType.AssignmentTimes.FirstOrDefault().TimeToAssign)
-                    : "No time limit defined"));
+                    : "No time limit defined"))
+            .ForMember(dest => dest.TimeToSolve, opt => opt.MapFrom(src => 
+                src.ProblemType != null && src.ProblemType.SolutionTime != null && src.ProblemType.SolutionTime.Any() 
+                    ? src.ProblemType.SolutionTime.FirstOrDefault().TimeToSolve 
+                    : (TimeSpan?)null))
+            .ForMember(dest => dest.TimeToSolveDisplay, opt => opt.MapFrom(src => 
+                src.ProblemType != null && src.ProblemType.SolutionTime != null && src.ProblemType.SolutionTime.Any() 
+                    ? TimeSpanFormatter.Format(src.ProblemType.SolutionTime.FirstOrDefault().TimeToSolve)
+                    : "No solution time defined"));
         
         CreateMap<TicketNote, TicketNoteDto>()
             .ForMember(d => d.CreatedByEmail, o => o.MapFrom(s => s.CreatedBy.Email))

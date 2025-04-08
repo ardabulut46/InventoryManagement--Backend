@@ -50,7 +50,7 @@ namespace InventoryManagement.API.Controllers
         {
             // Update the include path: use "Group.Department" instead of "Department"
             var tickets = await _ticketRepository.GetAllWithIncludesAsync(
-                "User", "Group.Department", "Group", "Inventory", "CreatedBy","ProblemType","ProblemType.AssignmentTimes");
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy","ProblemType","ProblemType.AssignmentTimes","ProblemType.SolutionTime");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
 
@@ -58,7 +58,7 @@ namespace InventoryManagement.API.Controllers
         public async Task<ActionResult<TicketDto>> GetTicket(int id)
         {
             var ticket = await _ticketRepository.GetByIdWithIncludesAsync(
-                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory","ProblemType","ProblemType.AssignmentTimes");
+                id, "User", "Group.Department", "CreatedBy", "Group", "Inventory","ProblemType","ProblemType.AssignmentTimes","ProblemType.SolutionTime");
             if (ticket == null)
                 return NotFound();
 
@@ -369,7 +369,7 @@ namespace InventoryManagement.API.Controllers
 
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
                 t => t.UserId == userId,
-                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy","ProblemType","ProblemType.SolutionTime");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
         [HttpGet("my-cancelled-tickets")]

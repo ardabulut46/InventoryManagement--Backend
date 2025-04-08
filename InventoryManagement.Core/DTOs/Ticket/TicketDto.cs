@@ -29,7 +29,7 @@ public class TicketDto
     public DateTime? UpdatedDate { get; set; }
     public int CreatedById { get; set; }
     public UserDto CreatedBy { get; set; }
-    public DateTime AssignedDate { get; set; }
+    public DateTime? AssignedDate { get; set; }
     public TimeSpan? IdleDuration { get; set; }
     public string IdleDurationDisplay { get; set; }
     public TimeSpan? TimeToAssign { get; set; }
@@ -37,5 +37,10 @@ public class TicketDto
     public bool IsAssignmentOverdue => !UserId.Equals(default) 
         ? false 
         : TimeToAssign.HasValue && (DateTime.Now - CreatedDate) > TimeToAssign.Value;
+    public TimeSpan? TimeToSolve { get; set; }
+    public string TimeToSolveDisplay { get; set; }
+    public bool IsSolutionOverdue => !AssignedDate.Equals(default) 
+        ? AssignedDate.HasValue && TimeToSolve.HasValue && (DateTime.Now - AssignedDate.Value) > TimeToSolve.Value
+        : false;
     
 }
