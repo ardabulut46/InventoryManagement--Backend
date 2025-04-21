@@ -44,14 +44,56 @@ namespace InventoryManagement.API.Controllers
             _context = context;
             _idleDurationLimitRepository = idleDurationLimitRepository;
         }
+        
+        private async Task<List<string>> GetCurrentUserPermissions(int userId)
+        {
+            // Get the user's role IDs
+            var roleIds = await _context.UserRoles
+                .Where(ur => ur.UserId == userId)
+                .Select(ur => ur.RoleId)
+                .ToListAsync();
+
+            // Get all permissions for these roles
+            return await _context.RolePermissions
+                .Where(rp => roleIds.Contains(rp.RoleId))
+                .Select(rp => rp.Permission)
+                .ToListAsync();
+        }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TicketDto>>> GetTickets()
         {
-            // Update the include path: use "Group.Department" instead of "Department"
             var tickets = await _ticketRepository.GetAllWithIncludesAsync(
                 "User", "Group.Department", "Group", "Inventory", "CreatedBy","ProblemType","ProblemType.AssignmentTimes","ProblemType.SolutionTime");
-            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+                return Unauthorized("Invalid user ID");
+
+            // Get permissions
+            var permissions = await GetCurrentUserPermissions(userId);
+            bool canViewWhoCreated = permissions.Contains(InventoryManagement.Core.Constants.Permissions.Tickets.ViewWhoCreated);
+
+            var ticketDtos = _mapper.Map<IEnumerable<TicketDto>>(tickets).ToList();
+
+            // If user does not have permission, only expose group info for CreatedBy
+            if (!canViewWhoCreated)
+            {
+                foreach (var dto in ticketDtos)
+                {
+                    if (dto.CreatedBy != null)
+                    {
+                        dto.CreatedBy = new UserDto
+                        {
+                            GroupId = dto.CreatedBy.GroupId,
+                            GroupName = dto.CreatedBy.GroupName
+                        };
+                    }
+                }
+            }
+
+            return Ok(ticketDtos);
         }
 
         [HttpGet("{id}")]
@@ -62,12 +104,27 @@ namespace InventoryManagement.API.Controllers
             if (ticket == null)
                 return NotFound();
 
-            if (ticket.AssignedDate != default)
-            {
-                ticket.IdleDuration = ticket.AssignedDate - ticket.CreatedDate;
-            }
+            // Get current user ID
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!int.TryParse(currentUserId, out int userId))
+                return Unauthorized("Invalid user ID");
+
+            // Get permissions
+            var permissions = await GetCurrentUserPermissions(userId);
+            bool canViewWhoCreated = permissions.Contains(InventoryManagement.Core.Constants.Permissions.Tickets.ViewWhoCreated);
 
             var ticketDto = _mapper.Map<TicketDto>(ticket);
+
+            // If user does not have permission, only expose group info for CreatedBy
+            if (!canViewWhoCreated && ticketDto.CreatedBy != null)
+            {
+                ticketDto.CreatedBy = new UserDto
+                {
+                    GroupId = ticketDto.CreatedBy.GroupId,
+                    GroupName = ticketDto.CreatedBy.GroupName
+                };
+            }
+
             return Ok(ticketDto);
         }
 
@@ -219,10 +276,33 @@ namespace InventoryManagement.API.Controllers
                 return BadRequest("User not found or not assigned to a department");
             }
 
+            // Get permissions
+            var permissions = await GetCurrentUserPermissions(userId);
+            bool canViewWhoCreated = permissions.Contains(InventoryManagement.Core.Constants.Permissions.Tickets.ViewWhoCreated);
+
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
                 t => t.GroupId == user.GroupId,
                 "User", "Group.Department", "Group", "Inventory", "CreatedBy", "ProblemType","ProblemType.AssignmentTimes");
-            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+
+            var ticketDtos = _mapper.Map<IEnumerable<TicketDto>>(tickets).ToList();
+
+            // If user does not have permission, only expose group info for CreatedBy
+            if (!canViewWhoCreated)
+            {
+                foreach (var dto in ticketDtos)
+                {
+                    if (dto.CreatedBy != null)
+                    {
+                        dto.CreatedBy = new UserDto
+                        {
+                            GroupId = dto.CreatedBy.GroupId,
+                            GroupName = dto.CreatedBy.GroupName
+                        };
+                    }
+                }
+            }
+
+            return Ok(ticketDtos);
         }
 
         // Assign ticket to self
@@ -372,6 +452,7 @@ namespace InventoryManagement.API.Controllers
                 "User", "Group.Department", "Group", "Inventory", "CreatedBy","ProblemType","ProblemType.SolutionTime");
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
+        
         [HttpGet("my-cancelled-tickets")]
         [Authorize]
         public async Task<ActionResult<IEnumerable<TicketDto>>> GetMyCancelledTickets()
@@ -557,8 +638,7 @@ namespace InventoryManagement.API.Controllers
             }
         }
         
-
-
+        
         [HttpGet("created-tickets")]
         [Authorize]
         public async Task<ActionResult<IEnumerable<TicketDto>>>MyTickets()
@@ -570,8 +650,19 @@ namespace InventoryManagement.API.Controllers
             }
             var tickets = await _ticketRepository.SearchWithIncludesAsync(
                 t=>t.CreatedById == userId,
-                "User", "Group.Department", "Group", "Inventory", "CreatedBy");
-            return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
+                "User", "Group.Department", "Group", "Inventory", "CreatedBy","ProblemType","ProblemType.AssignmentTimes","ProblemType.SolutionTime");
+            
+            foreach (var ticket in tickets)
+            {
+                // Calculate idle duration if the ticket has been assigned
+                if (ticket.AssignedDate.HasValue)
+                {
+                    ticket.IdleDuration = ticket.AssignedDate.Value - ticket.CreatedDate;
+                }
+            }
+            
+            var ticketDtos = _mapper.Map<IEnumerable<TicketDto>>(tickets);
+            return Ok(ticketDtos);
         }
 
         [HttpGet("created-tickets/sla-breach")]

@@ -35,10 +35,11 @@ public static class Permissions
         public const string Edit = "Tickets:Edit";
         public const string Delete = "Tickets:Delete";
         public const string Assign = "Tickets:Assign";
+        public const string ViewWhoCreated = "Tickets:ViewWhoCreated";
     }
     //Role permissions
     public static class Roles
-    {
+    {   
         public const string View = "Roles:View";
         public const string Create = "Roles:Create";
         public const string Edit = "Roles:Edit";

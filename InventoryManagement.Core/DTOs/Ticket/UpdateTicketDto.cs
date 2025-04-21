@@ -6,7 +6,7 @@ namespace InventoryManagement.Core.DTOs.Ticket;
 public class UpdateTicketDto
 {
     [Required(ErrorMessage = "Problem tipi zorunludur")]
-    public string ProblemType { get; set; }
+    public int ProblemTypeId { get; set; }
 
     public string Location { get; set; }
     public string Room { get; set; }
