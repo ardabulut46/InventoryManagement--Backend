@@ -127,6 +127,44 @@ namespace InventoryManagement.API.Controllers
 
             return Ok(ticketDto);
         }
+        
+        [HttpGet("most-opened-by-group")]
+        public async Task<ActionResult<IEnumerable<GroupTicketCountDto>>> GetMostOpenedByGroup()
+        {
+            var groupCounts = await _context.Tickets
+                .Where(t => t.CreatedById != null && t.CreatedBy.GroupId != null)
+                .GroupBy(t => new { GroupId = t.CreatedBy.GroupId.Value, t.CreatedBy.Group.Name })
+                .Select(g => new GroupTicketCountDto
+                {
+                    GroupId = g.Key.GroupId,
+                    GroupName = g.Key.Name,
+                    TicketCount = g.Count()
+                })
+                .OrderByDescending(g => g.TicketCount)
+                .Take(5)
+                .ToListAsync();
+
+            return Ok(groupCounts);
+        }
+
+        [HttpGet("most-opened-to-group")]
+        public async Task<ActionResult<IEnumerable<GroupTicketCountDto>>> GetMostOpenedToGroup()
+        {
+            var groupCounts = await _context.Tickets
+                .Where(t => t.GroupId != null)
+                .GroupBy(t => new { t.GroupId, t.Group.Name })
+                .Select(g => new GroupTicketCountDto
+                {
+                    GroupId = g.Key.GroupId,
+                    GroupName = g.Key.Name,
+                    TicketCount = g.Count()
+                })
+                .OrderByDescending(g => g.TicketCount)
+                .Take(5)
+                .ToListAsync();
+
+            return Ok(groupCounts);
+        }
 
         [HttpPost]
         [Authorize]
@@ -471,6 +509,7 @@ namespace InventoryManagement.API.Controllers
 
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
+        
         [HttpGet("high-priority-tickets")]
         [Authorize]
         public async Task<ActionResult<IEnumerable<TicketDto>>> GetHighPriorityTickets()
