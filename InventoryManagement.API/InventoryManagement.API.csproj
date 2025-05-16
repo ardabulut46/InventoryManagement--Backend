@@ -37,7 +37,33 @@
       <Folder Include="Areas\ModelController\Data\" />
       <Folder Include="Areas\ModelController\Models\" />
       <Folder Include="Areas\ModelController\Views\" />
-      <Folder Include="wwwroot\uploads\notes\6\1\" />
+      <Folder Include="wwwroot\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\inventory\2\bf1a1080-2040-488a-b046-e1f631f31470.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\inventory\2\f02750c7-1410-4007-9fc2-17165786a7a8.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\invoices\1dde0ce0-0e93-488b-b8e3-7869371259de.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\invoices\2aaa04d5-3840-4367-bfe1-6adad9d63dcb.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\invoices\8cdac19e-f817-4c11-bb8b-78f5e520de20.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\invoices\8d255133-fc3b-40b2-b116-2816198539ff.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\invoices\a7b1a69c-aa78-4076-9fff-02e6b56587ad.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\invoices\e491b3a9-27cc-43c9-a8d2-811b2ed2d157.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\0b86b55f-9d67-4e8d-b03b-12b352448e34.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\24a1fc48-2f25-4e5a-829d-794cea261622.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\30d4828b-73a6-4b69-9567-fb5a36c17560.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\3654eb5d-fbda-4515-a332-54722e5661cc.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\47344ffe-b9af-4ddb-bf73-bc7d865134f4.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\4b8b8510-3a41-4761-8791-9cec70e7f7f0.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\505d44c4-e109-4a2b-a237-b7aa1c2510d9.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\8e24a9f0-a363-4c78-8516-fcc2291de2f0.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\988d6320-f6f6-4378-92d3-92952bd36632.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\cbcb8994-7d13-4180-860c-79ef35c19efc.pdf" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\d6e2eb36-b7a4-45d1-a56d-f8d61366798d.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\d701204d-89f8-4805-a259-19097419cc81.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\f2b47cb8-7bff-4095-8a0e-c0353310305c.png" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\f6a1f646-30fc-40fb-a96d-e0c92ecc151c.jpg" />
+      <_ContentIncludedByDefault Remove="wwwroot\uploads\tickets\f7401e52-6aa7-4ba3-870b-23f372f869e1.pdf" />
     </ItemGroup>
 
 </Project>

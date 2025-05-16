@@ -38,31 +38,7 @@ public class AuthController : ControllerBase
         _context = context;
         _roleManager = roleManager;
     }
-
-    /*
-    [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto registerDto)
-    {
-        if (await _userManager.FindByEmailAsync(registerDto.Email) != null)
-            return BadRequest("Email already exists");
-
-        if (await _userManager.FindByNameAsync(registerDto.Username) != null)
-            return BadRequest("Username already exists");
-
-        var user = _mapper.Map<User>(registerDto);
-        user.UserName = registerDto.Username;
-        
-        var result = await _userManager.CreateAsync(user, registerDto.Password);
-
-        if (!result.Succeeded) return BadRequest(result.Errors);
-
-        return new AuthResponseDto
-        {
-            Token = _tokenService.CreateToken(user),
-            User = _mapper.Map<UserDto>(user)
-        };
-    }
-    */
+    
 
     [HttpPost("login")]
     public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)

@@ -32,7 +32,7 @@ public class CreateUserDto
     public string? City { get; set; }
     public string? District { get; set; }
     public string? Address { get; set; }
-    public int RoleId { get; set; }
+    public int? RoleId { get; set; }
 
     public bool IsActive { get; set; } = true;
 }

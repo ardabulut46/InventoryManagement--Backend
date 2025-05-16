@@ -8,4 +8,5 @@ public class CreateGroupDto
     public string Name { get; set; }
     [Required(ErrorMessage = "Departman zorunludur")]
     public int DepartmentId { get; set; }
+    public int? ManagerId { get; set; }
 }

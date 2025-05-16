@@ -3,6 +3,7 @@ using InventoryManagement.Core.DTOs.Group;
 using InventoryManagement.Core.Entities;
 using InventoryManagement.Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 [ApiController]
@@ -13,15 +14,18 @@ public class GroupController : ControllerBase
 {
    private readonly IGenericRepository<Group> _groupRepository;
    private readonly IGenericRepository<Department> _departmentRepository;
+   private readonly UserManager<User> _userManager;
    private readonly IMapper _mapper;
 
    public GroupController(
        IGenericRepository<Group> groupRepository,
        IGenericRepository<Department> departmentRepository, 
+       UserManager<User> userManager,
        IMapper mapper)
    {
        _groupRepository = groupRepository;
        _departmentRepository = departmentRepository;
+       _userManager = userManager;
        _mapper = mapper;
    }
 
@@ -58,6 +62,13 @@ public class GroupController : ControllerBase
        if (department == null)
            return BadRequest($"Department with ID {createGroupDto.DepartmentId} not found");
 
+       if (createGroupDto.ManagerId.HasValue)
+       {
+           var manager = await _userManager.FindByIdAsync(createGroupDto.ManagerId.Value.ToString());
+           if (manager == null)
+               return BadRequest($"Manager User with ID {createGroupDto.ManagerId.Value} not found");
+       }
+
        var group = _mapper.Map<Group>(createGroupDto);
        var createdGroup = await _groupRepository.AddAsync(group);
 
@@ -78,6 +89,16 @@ public class GroupController : ControllerBase
        var department = await _departmentRepository.GetByIdAsync(groupDto.DepartmentId);
        if (department == null)
            return BadRequest($"Department with ID {groupDto.DepartmentId} not found");
+
+       if (groupDto.ManagerId.HasValue)
+       {
+           if (group.ManagerId != groupDto.ManagerId)
+           {
+               var manager = await _userManager.FindByIdAsync(groupDto.ManagerId.ToString());
+               if (manager == null)
+                   return BadRequest($"Manager User with ID {groupDto.ManagerId.Value} not found");
+           }
+       }
 
        _mapper.Map(groupDto, group);
        await _groupRepository.UpdateAsync(group);

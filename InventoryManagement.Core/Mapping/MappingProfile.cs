@@ -232,6 +232,12 @@ public class MappingProfile : Profile
         CreateMap<CancelReason, CancelReasonDto>();
         CreateMap<CreateCancelReasonDto, CancelReason>();
         CreateMap<UpdateCancelReasonDto, CancelReason>();
+        
+        CreateMap<CreateGroupDto, Group>(); // This should now pick up ManagerId by convention if names match
+        CreateMap<Group, GroupDto>();     // This should also pick up ManagerId
+        
+        CreateMap<GroupDto, Group>()
+            .ForMember(dest => dest.Id, opt => opt.Ignore()); // Typically ignore Id on updates from DTO
     }
     
 }

@@ -18,6 +18,7 @@ using InventoryManagement.Core.Enums;
 using InventoryManagement.Core.Helpers;
 using InventoryManagement.Infrastructure.Repositories;
 using QuestPDF.Fluent;
+using Microsoft.Extensions.Logging;
 
 namespace InventoryManagement.API.Controllers
 { 
@@ -30,15 +31,20 @@ public class InventoryController : ControllerBase
     private readonly IValidator<CreateInventoryDto> _validator;
     private readonly IUserRepository _userRepository;
     private readonly ApplicationDbContext _context;
+    private readonly IInventoryService _inventoryService;
+    private readonly ILogger<InventoryController> _logger;
+    private readonly IApprovalService _approvalService;
     
-    public InventoryController(IGenericRepository<Inventory> inventoryRepository, IMapper mapper, IValidator<CreateInventoryDto> validator, IUserRepository userRepository, ApplicationDbContext context)
+    public InventoryController(IGenericRepository<Inventory> inventoryRepository, IMapper mapper, IValidator<CreateInventoryDto> validator, IUserRepository userRepository, ApplicationDbContext context, IInventoryService inventoryService, ILogger<InventoryController> logger, IApprovalService approvalService)
     {
         _inventoryRepository = inventoryRepository;
         _mapper = mapper;
         _validator = validator;
         _userRepository = userRepository;
         _context = context;
-        
+        _inventoryService = inventoryService;
+        _logger = logger;
+        _approvalService = approvalService;
     }
 
 
@@ -367,19 +373,8 @@ public class InventoryController : ControllerBase
     //[Authorize(Policy = "CanView")]
     public async Task<ActionResult<IEnumerable<InventoryDto>>> GetInventories()
     {
-        var inventories = await _inventoryRepository.SearchWithIncludesAsync(
-            i=>i.IsActive,
-            "AssignedUser",
-            "LastUser",
-            "CreatedUser",
-            "SupportCompany",
-            "InventoryHistory",
-            "Family",
-            "Type",
-            "Brand",
-            "Model",
-            "Attachments");
-        return Ok(_mapper.Map<IEnumerable<InventoryDto>>(inventories));
+        var inventories = await _inventoryService.GetInventoriesAsync();
+        return Ok(inventories);
     }
     [HttpGet("group-inventories")]
     [Authorize]
@@ -427,23 +422,11 @@ public class InventoryController : ControllerBase
     [HttpGet("{id}")]
     public async Task<ActionResult<InventoryDto>> GetInventory(int id)
     {
-        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(
-            id,
-            "AssignedUser",
-            "LastUser",
-            "CreatedUser",
-            "SupportCompany",
-            "InventoryHistory",
-            "Attachments",
-            "Family",
-            "Type",
-            "Brand",
-            "Model");
-
-        if (inventory == null || !inventory.IsActive)
+        var inventory = await _inventoryService.GetInventoryByIdAsync(id);
+        if (inventory == null)
             return NotFound();
 
-        return Ok(_mapper.Map<InventoryDto>(inventory));
+        return Ok(inventory);
     }
 
     [HttpPost]
@@ -458,7 +441,6 @@ public class InventoryController : ControllerBase
         return Unauthorized("Invalid user ID");
     }
 
-    // Get the current user to populate location-related fields
     var currentUser = await _userRepository.GetByIdAsync(userId);
     if (currentUser == null)
     {
@@ -470,170 +452,31 @@ public class InventoryController : ControllerBase
     createInventoryDto.Room = currentUser.Room;
     createInventoryDto.Floor = currentUser.Floor;
 
-    // Set the status to a default value if not provided
-    if (!createInventoryDto.Status.HasValue)
-    {
-        createInventoryDto.Status = InventoryStatus.Available;
-    }
-
-    // Set the creator ID
-    createInventoryDto.CreatedUserId = userId;
-
     var validationResult = await _validator.ValidateAsync(createInventoryDto);
     if (!validationResult.IsValid)
     {
-        return BadRequest(validationResult.Errors);
+        validationResult.AddToModelState(ModelState);
+        return BadRequest(ModelState);
     }
 
-    // Declare createdInventory outside the try block
-    Inventory createdInventory = null;
-
-    using var transaction = await _context.Database.BeginTransactionAsync();
     try
     {
-        // Verify that the referenced entities exist
-        var familyExists = await _context.Families.AnyAsync(f => f.Id == createInventoryDto.FamilyId);
-        if (!familyExists)
-        {
-            return BadRequest($"Family with ID {createInventoryDto.FamilyId} does not exist.");
-        }
-
-        var typeExists = await _context.InventoryTypes.AnyAsync(t => t.Id == createInventoryDto.TypeId);
-        if (!typeExists)
-        {
-            return BadRequest($"Type with ID {createInventoryDto.TypeId} does not exist.");
-        }
-
-        var brandExists = await _context.Brands.AnyAsync(b => b.Id == createInventoryDto.BrandId);
-        if (!brandExists)
-        {
-            return BadRequest($"Brand with ID {createInventoryDto.BrandId} does not exist.");
-        }
-
-        var modelExists = await _context.Models.AnyAsync(m => m.Id == createInventoryDto.ModelId);
-        if (!modelExists)
-        {
-            return BadRequest($"Model with ID {createInventoryDto.ModelId} does not exist.");
-        }
-
-        var inventory = _mapper.Map<Inventory>(createInventoryDto);
-        createdInventory = await _inventoryRepository.AddAsync(inventory);
-
-        if (createInventoryDto.AssignedUserId.HasValue)
-        {
-            await _inventoryRepository.AddInventoryHistoryAsync(
-                createdInventory.Id,
-                createInventoryDto.AssignedUserId.Value,
-                "İlk atama");
-        }
-
-        if (files != null && files.Any() && !files.All(f => f.Length == 0))
-            {
-                // Define allowed file types
-                var allowedExtensions = new[] { ".pdf", ".doc", ".docx", ".txt", ".jpg", ".jpeg", ".png" };
-                var inventoryId = createdInventory.Id;
-
-                var uploadedFiles = new List<string>(); // Track files we've written to disk
-                var attachmentsAdded = false;
-
-                foreach (var file in files)
-                {
-                    var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
-
-                    if (!allowedExtensions.Contains(fileExtension))
-                    {
-                        continue; // Skip invalid files
-                    }
-
-                    // Create unique filename
-                    var fileName = $"{Guid.NewGuid()}{fileExtension}";
-
-                    // Define upload path
-                    var uploadPath = Path.Combine("wwwroot", "uploads", "inventory", inventoryId.ToString());
-
-                    // Create directory if it doesn't exist
-                    if (!Directory.Exists(uploadPath))
-                        Directory.CreateDirectory(uploadPath);
-
-                    var filePath = Path.Combine(uploadPath, fileName);
-                    var relativePath = Path.Combine("uploads", "inventory", inventoryId.ToString(), fileName)
-                        .Replace("\\", "/");
-
-                    // Save file
-                    using (var stream = new FileStream(filePath, FileMode.Create))
-                    {
-                        await file.CopyToAsync(stream);
-                    }
-
-                    uploadedFiles.Add(filePath); // Track the file we just wrote
-
-                    // Create attachment
-                    var attachment = new InventoryAttachment
-                    {
-                        InventoryId = inventoryId,
-                        FileName = file.FileName,
-                        FilePath = relativePath,
-                        ContentType = file.ContentType,
-                        FileSize = file.Length,
-                        UploadDate = DateTime.Now,
-                        Description = fileDescription
-                    };
-
-                    // Add attachment to inventory
-                    if (createdInventory.Attachments == null)
-                    {
-                        createdInventory.Attachments = new List<InventoryAttachment>();
-                    }
-
-                    createdInventory.Attachments.Add(attachment);
-                    attachmentsAdded = true;
-                }
-
-                // Update inventory with attachments if any were added
-                if (attachmentsAdded)
-                {
-                    await _inventoryRepository.UpdateAsync(createdInventory);
-                }
-            }
-
-            // If we've reached this point without exceptions, commit the transaction
-            await transaction.CommitAsync();
-
-            return CreatedAtAction(
-                nameof(GetInventory),
-                new { id = createdInventory.Id },
-                _mapper.Map<InventoryDto>(createdInventory));
-        }
-        catch (Exception ex)
-        {
-            // Roll back the transaction
-            await transaction.RollbackAsync();
-
-            // Delete any uploaded files if they exist
-            CleanupUploadedFiles(createdInventory?.Id);
-
-            return StatusCode(500, $"Failed to create inventory: {ex.Message}");
-        }
+        var createdInventoryDto = await _inventoryService.CreateInventoryAsync(createInventoryDto, userId, files, fileDescription);
+        return CreatedAtAction(
+            nameof(GetInventory),
+            new { id = createdInventoryDto.Id },
+            createdInventoryDto);
     }
-
-    private void CleanupUploadedFiles(int? inventoryId)
+    catch (ArgumentException ex) // Catch specific exceptions thrown by the service
     {
-        if (!inventoryId.HasValue) return;
-
-        var uploadPath = Path.Combine("wwwroot", "uploads", "inventory", inventoryId.Value.ToString());
-        if (Directory.Exists(uploadPath))
-        {
-            try
-            {
-                Directory.Delete(uploadPath, true); // Recursive delete
-            }
-            catch (Exception ex)
-            {
-                // Add proper logging here
-                // _logger.LogWarning(ex, "Failed to clean up uploaded files for inventory {InventoryId}", inventoryId.Value);
-            }
-        }
+        return BadRequest(ex.Message);
     }
+    catch (Exception ex) // Catch any other exceptions
+    {
+        // Log the exception (using a logger injected into the controller is recommended)
+        return StatusCode(500, $"An unexpected error occurred: {ex.Message}");
+    }
+}
 
     [HttpPut("{id}/assign-user")]
     public async Task<IActionResult> AssignUser(int id, int userId, string notes = null)
@@ -723,77 +566,36 @@ public class InventoryController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateInventory(int id, UpdateInventoryDto updateInventoryDto)
     {
-        var inventory = await _inventoryRepository.GetByIdWithIncludesAsync(
-            id,
-            "AssignedUser",
-            "LastUser",
-            "CreatedUser",
-            "SupportCompany",
-            "InventoryHistory",
-            "Attachments",
-            "Family",
-            "Type",
-            "Brand",
-            "Model");
-
-        if (inventory == null)
-            return NotFound();
-
-        // Verify that the referenced entities exist
-        var familyExists = await _context.Families.AnyAsync(f => f.Id == updateInventoryDto.FamilyId);
-        if (!familyExists)
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!int.TryParse(currentUserId, out int userId))
         {
-            return BadRequest($"Family with ID {updateInventoryDto.FamilyId} does not exist.");
+            return Unauthorized("Invalid user ID");
         }
 
-        var typeExists = await _context.InventoryTypes.AnyAsync(t => t.Id == updateInventoryDto.TypeId);
-        if (!typeExists)
+        // Basic DTO validation (e.g., required fields, string lengths) can still be done here via model state
+        if (!ModelState.IsValid)
         {
-            return BadRequest($"Type with ID {updateInventoryDto.TypeId} does not exist.");
+            return BadRequest(ModelState);
         }
 
-        var brandExists = await _context.Brands.AnyAsync(b => b.Id == updateInventoryDto.BrandId);
-        if (!brandExists)
+        try
         {
-            return BadRequest($"Brand with ID {updateInventoryDto.BrandId} does not exist.");
+            await _inventoryService.UpdateInventoryAsync(id, updateInventoryDto, userId);
+            return NoContent();
         }
-
-        var modelExists = await _context.Models.AnyAsync(m => m.Id == updateInventoryDto.ModelId);
-        if (!modelExists)
+        catch (KeyNotFoundException ex) // Specific exception for not found
         {
-            return BadRequest($"Model with ID {updateInventoryDto.ModelId} does not exist.");
+            return NotFound(ex.Message);
         }
-
-        // Check if assigned user exists if provided
-        if (updateInventoryDto.AssignedUserId.HasValue)
+        catch (ArgumentException ex) // Specific exception for bad requests (validation failures from service)
         {
-            var userExists = await _userRepository.GetByIdAsync(updateInventoryDto.AssignedUserId.Value);
-            if (userExists == null)
-            {
-                return BadRequest($"User with ID {updateInventoryDto.AssignedUserId.Value} does not exist.");
-            }
-
-            // If the assigned user is changing, update the LastUserId
-            if (inventory.AssignedUserId != updateInventoryDto.AssignedUserId)
-            {
-                inventory.LastUserId = inventory.AssignedUserId;
-            }
+            return BadRequest(ex.Message);
         }
-
-        // Check if support company exists if provided
-        if (updateInventoryDto.SupportCompanyId.HasValue)
+        catch (Exception ex) // Catch-all for other unexpected errors
         {
-            var companyExists =
-                await _context.Companies.AnyAsync(c => c.Id == updateInventoryDto.SupportCompanyId.Value);
-            if (!companyExists)
-            {
-                return BadRequest($"Company with ID {updateInventoryDto.SupportCompanyId.Value} does not exist.");
-            }
+            // Log the exception (using a logger injected into the controller is recommended)
+            return StatusCode(500, $"An unexpected error occurred while updating inventory: {ex.Message}");
         }
-
-        _mapper.Map(updateInventoryDto, inventory);
-        await _inventoryRepository.UpdateAsync(inventory);
-        return NoContent();
     }
     
     [HttpPut("{id}/status")]
@@ -811,15 +613,45 @@ public class InventoryController : ControllerBase
     }
     
     [HttpDelete("{id}")]
+    [Authorize] // It's good practice to ensure the user is authenticated
     public async Task<IActionResult> DeleteInventory(int id)
     {
-        var inventory = await _inventoryRepository.GetByIdAsync(id);
-        if (inventory == null)
-            return NotFound();
+        var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var requestingUserId))
+        {
+            return Unauthorized("User identifier is missing or invalid.");
+        }
 
-        inventory.IsActive = false;
-        await _inventoryRepository.UpdateAsync(inventory);
-        return NoContent();
+        try
+        {
+            // First validate the inventory
+            var inventory = await _inventoryService.RequestDeleteInventoryAsync(id, requestingUserId, null);
+            
+            // If inventory is valid, create the approval request
+            await _approvalService.CreateApprovalRequestAsync(
+                requestingUserId,
+                nameof(Inventory),
+                id,
+                "Delete",
+                null);
+
+            return Ok(new { message = "Deletion request submitted for approval." });
+        }
+        catch (ArgumentException ex) when (ex.Message.Contains("not found"))
+        {
+            _logger.LogWarning(ex, "Failed to request delete for inventory {InventoryId}: {ErrorMessage}", id, ex.Message);
+            return NotFound(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Invalid request to delete inventory {InventoryId}: {ErrorMessage}", id, ex.Message);
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An unexpected error occurred while requesting deletion for inventory {InventoryId}", id);
+            return StatusCode(StatusCodes.Status500InternalServerError, new { message = "An unexpected error occurred." });
+        }
     }
 
     [HttpGet("search")]

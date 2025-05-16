@@ -12,16 +12,16 @@ public class UpdateInventoryDto
     public string SerialNumber { get; set; }
     
     [Required(ErrorMessage = "Aile bilgisi zorunludur")]
-    public int FamilyId { get; set; }
+    public int? FamilyId { get; set; }
     
     [Required(ErrorMessage = "Tip bilgisi zorunludur")]
-    public int TypeId { get; set; }
+    public int? TypeId { get; set; }
     
     [Required(ErrorMessage = "Marka bilgisi zorunludur")]
-    public int BrandId { get; set; }
+    public int? BrandId { get; set; }
     
     [Required(ErrorMessage = "Model bilgisi zorunludur")]
-    public int ModelId { get; set; }
+    public int? ModelId { get; set; }
     
     public int? CreatedUserId { get; set; }
     public string Location { get; set; }

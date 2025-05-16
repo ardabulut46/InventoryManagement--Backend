@@ -47,6 +47,10 @@ public class ApplicationDbContext : IdentityDbContext<User,Role, int>
     public DbSet<Model> Models { get; set; }
     public DbSet<DelayReason> DelayReasons { get; set; }
     
+    public DbSet<Notification> Notifications { get; set; }
+    
+    public  DbSet<ApprovalRequest> ApprovalRequests { get; set; }
+    
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     { 
@@ -245,6 +249,30 @@ public class ApplicationDbContext : IdentityDbContext<User,Role, int>
         .WithMany(pt => pt.SolutionTime)
         .HasForeignKey(st => st.ProblemTypeId)
         .OnDelete(DeleteBehavior.Restrict);
+    
+    modelBuilder.Entity<Group>()
+        .HasOne(g => g.Manager)             // A Group has one Manager (User)
+        .WithMany()                         // A User (Manager) can manage many Groups
+        .HasForeignKey(g => g.ManagerId)    // Foreign key in Group table
+        .OnDelete(DeleteBehavior.SetNull);
+    
+    modelBuilder.Entity<Notification>()
+        .HasOne(n => n.RecipientUser)
+        .WithMany() // Or WithMany(u => u.Notifications) if you add a collection to User
+        .HasForeignKey(n => n.RecipientUserId)
+        .OnDelete(DeleteBehavior.Cascade); // Or Restrict, depending on if notifications should be deleted if user is deleted. Cascade is common.
+    
+    modelBuilder.Entity<ApprovalRequest>()
+        .HasOne(ar => ar.RequestingUser)
+        .WithMany() // Or WithMany(u => u.SubmittedApprovalRequests) if you add to User
+        .HasForeignKey(ar => ar.RequestingUserId)
+        .OnDelete(DeleteBehavior.Restrict); // Prevent user deletion if they have pending requests
+
+    modelBuilder.Entity<ApprovalRequest>()
+        .HasOne(ar => ar.ApproverUser)
+        .WithMany() // Or WithMany(u => u.AssignedApprovalRequests) if you add to User
+        .HasForeignKey(ar => ar.ApproverUserId)
+        .OnDelete(DeleteBehavior.Restrict); // Prevent user deletion if they are an assigned approver
 
 
     }

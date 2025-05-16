@@ -169,7 +169,11 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IValidator<CreateInventoryDto>, CreateInventoryDtoValidator>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
-
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IApprovalActionExecutor, ApprovalActionExecutor>();
+builder.Services.AddScoped<IApprovalService, ApprovalService>();
+builder.Services.AddScoped<IInventoryService, InventoryService>();
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddHttpClient<OpenRouterService>();
 builder.Services.AddHttpClient<DeepSeekService>();
 
