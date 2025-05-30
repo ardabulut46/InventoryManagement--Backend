@@ -60,8 +60,35 @@ namespace InventoryManagement.API.Controllers
             }
         }
 
+        [HttpGet("all-requests")]
+        public async Task<IActionResult> GetAllRequests()
+        {
+            var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var managerId))
+            {
+                _logger.LogWarning("Attempt to access pending approvals with invalid user identifier.");
+                return Unauthorized("User identifier is missing or invalid.");
+            }
+
+            try
+            {
+                var allRequests = await _approvalService.GetAllRequestsForManagerAsync(managerId);
+                if (allRequests == null || !allRequests.Any())
+                {
+                    return Ok(new List<object>());
+                }
+
+                return Ok(allRequests);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving all requests for manager {ManagerId}", managerId);
+                return StatusCode(StatusCodes.Status500InternalServerError, "An error occurred while retrieving all requests.");
+            }
+        }
+
         [HttpPost("{id}/approve")]
-        public async Task<IActionResult> ApproveRequest(int id)
+        public async Task<IActionResult> ApproveRequest(int id, [FromBody] ApproveApprovalRequestDto? approvalInput)
         {
             var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var approverId))
@@ -72,7 +99,7 @@ namespace InventoryManagement.API.Controllers
 
             try
             {
-                await _approvalService.ApproveRequestAsync(id, approverId);
+                await _approvalService.ApproveRequestAsync(id, approverId, approvalInput?.Comments);
                 return Ok(new { message = "Request approved successfully." });
             }
             catch (KeyNotFoundException ex) // Specific exception if approval request not found

@@ -614,7 +614,7 @@ public class InventoryController : ControllerBase
     
     [HttpDelete("{id}")]
     [Authorize] // It's good practice to ensure the user is authenticated
-    public async Task<IActionResult> DeleteInventory(int id)
+    public async Task<IActionResult> DeleteInventory(int id, [FromBody] RequestInventoryDeleteDto? deleteDto)
     {
         var userIdString = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userIdString) || !int.TryParse(userIdString, out var requestingUserId))
@@ -624,16 +624,18 @@ public class InventoryController : ControllerBase
 
         try
         {
-            // First validate the inventory
-            var inventory = await _inventoryService.RequestDeleteInventoryAsync(id, requestingUserId, null);
+            // First validate the inventory - comments are now passed to the service layer method if it's designed to use them
+            // If RequestDeleteInventoryAsync is only for validation and doesn't use comments, this change is fine.
+            // If it *should* use comments for some pre-check or logging, that service method would also need adjustment.
+            var inventory = await _inventoryService.RequestDeleteInventoryAsync(id, requestingUserId, deleteDto?.Comments);
             
             // If inventory is valid, create the approval request
             await _approvalService.CreateApprovalRequestAsync(
                 requestingUserId,
                 nameof(Inventory),
                 id,
-                "Delete",
-                null);
+                "Delete", // Standardized action type
+                deleteDto?.Comments); // Pass comments here
 
             return Ok(new { message = "Deletion request submitted for approval." });
         }

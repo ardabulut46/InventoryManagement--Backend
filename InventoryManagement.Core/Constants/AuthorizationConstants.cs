@@ -46,6 +46,12 @@ public static class Permissions
         public const string Delete = "Roles:Delete";
     }
 
+    //Reports permissions
+    public static class Reports
+    {
+        public const string View = "Reports:View";
+    }
+
     // Access to admin panel
     public static class AdminPanel
     {

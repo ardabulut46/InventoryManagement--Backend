@@ -159,6 +159,13 @@ public class ApprovalService : IApprovalService
             nameof(ApprovalRequest.RequestingUser) // Pass navigation property name as string for include
         );
     }
+    public async Task<IEnumerable<ApprovalRequest>> GetAllRequestsForManagerAsync(int managerUserId)
+    {
+        return await _approvalRequestRepository.SearchWithIncludesAsync(
+            ar => ar.ApproverUserId == managerUserId,
+            nameof(ApprovalRequest.RequestingUser) // Pass navigation property name as string for include
+        );
+    }
     
     public async Task<ApprovalRequest?> GetApprovalRequestByIdAsync(int approvalRequestId)
     {

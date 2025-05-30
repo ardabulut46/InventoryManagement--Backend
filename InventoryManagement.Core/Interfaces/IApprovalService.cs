@@ -21,6 +21,9 @@ public interface IApprovalService
     Task CancelRequestAsync(int approvalRequestId, int requestingUserId); // Requester cancels their own request
 
     Task<IEnumerable<ApprovalRequest>> GetPendingApprovalsForManagerAsync(int managerUserId);
+    Task<IEnumerable<ApprovalRequest>> GetAllRequestsForManagerAsync(int managerUserId);
+    
+    
     
     Task<ApprovalRequest?> GetApprovalRequestByIdAsync(int approvalRequestId);
 

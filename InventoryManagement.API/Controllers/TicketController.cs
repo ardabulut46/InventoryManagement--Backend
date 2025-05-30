@@ -537,6 +537,35 @@ namespace InventoryManagement.API.Controllers
             return Ok(_mapper.Map<IEnumerable<TicketDto>>(tickets));
         }
         
+        [HttpGet("most-assigned-to-user")]
+        public async Task<ActionResult<IEnumerable<UserTicketCountDto>>> GetMostAssignedTicketsToUser()
+        {
+            
+            var userTicketCounts = await _context.Tickets
+                .Where(t => t.UserId != null && t.User != null) // Ensure tickets are assigned and User object is available
+                .GroupBy(t => new { 
+                    UserId = t.UserId.Value, 
+                    UserName = t.User.Name,       // Assuming User.Name exists
+                    UserSurname = t.User.Surname  // Assuming User.Surname exists
+                })
+                .Select(g => new UserTicketCountDto
+                {
+                    UserId = g.Key.UserId,
+                    UserName = $"{g.Key.UserName} {g.Key.UserSurname}",
+                    TicketCount = g.Count()
+                })
+                .OrderByDescending(g => g.TicketCount)
+                .Take(5)
+                .ToListAsync();
+
+            if (userTicketCounts == null || !userTicketCounts.Any())
+            {
+                return NotFound("No users found with assigned tickets or no ticket data available.");
+            }
+
+            return Ok(userTicketCounts);
+        }
+        
         [HttpGet("my-solved-tickets")]
         [Authorize]
         public async Task<ActionResult<IEnumerable<TicketDto>>> GetMySolvedTickets()

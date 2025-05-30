@@ -7,7 +7,7 @@ public abstract class BaseEntity
     public DateTime? UpdatedDate { get; set; }
 
     public int? UpdatedById { get; set; }
-    //public User? UpdatedBy { get; set; }
+    
     public bool IsActive { get; set; } = true;
     
 }
