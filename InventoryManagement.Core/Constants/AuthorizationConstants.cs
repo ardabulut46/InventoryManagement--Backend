@@ -16,6 +16,10 @@ public static class Permissions
         public const string Edit = "Inventory:Edit";
         public const string Delete = "Inventory:Delete";
         public const string UploadInvoice = "Inventory:UploadFile";
+        public const string ViewFiles = "Inventory:ViewFiles";
+        public const string ViewAssignmentHistory = "Inventory:ViewAssignmentHistory";
+        public const string ViewPurchaseInfo = "Inventory:ViewPurchaseInfo";
+        public const string ViewAssignmentDocuments = "Inventory:ViewAssignmentDocuments";
     }
         
     // User Permissions

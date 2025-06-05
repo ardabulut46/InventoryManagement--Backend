@@ -31,6 +31,17 @@ namespace InventoryManagement.API.Extensions
                     policy.RequireClaim("Permission", Permissions.Inventory.Delete));
                 options.AddPolicy(Permissions.Inventory.UploadInvoice, policy =>
                     policy.RequireClaim("Permission", Permissions.Inventory.UploadInvoice));
+                options.AddPolicy(Permissions.Inventory.ViewFiles, policy =>
+                    policy.RequireClaim("Permission", Permissions.Inventory.ViewFiles));
+                options.AddPolicy(Permissions.Inventory.ViewAssignmentHistory, policy =>
+                    policy.RequireClaim("Permission", Permissions.Inventory.ViewAssignmentHistory));
+                options.AddPolicy(Permissions.Inventory.ViewPurchaseInfo, policy =>
+                    policy.RequireClaim("Permission", Permissions.Inventory.ViewPurchaseInfo));
+                options.AddPolicy(Permissions.Inventory.ViewAssignmentDocuments, policy =>
+                    policy.RequireClaim("Permission", Permissions.Inventory.ViewAssignmentDocuments));
+                
+                
+                
                 
                 // User Policies
                 options.AddPolicy(Permissions.Users.View, policy =>
